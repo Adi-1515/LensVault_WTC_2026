@@ -185,15 +185,35 @@ def update_metadata(photo_id: str, data: dict, db: Session = Depends(get_db), cu
 
 @router.get("/{photo_id}/thumbnail/{size}")
 def get_thumbnail(photo_id: str, size: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if size not in ["small", "medium", "large"]: raise HTTPException(status_code=400, detail="Invalid size")
+    if size not in ["small", "medium", "large"]:
+        raise HTTPException(status_code=400, detail="Invalid size. Use small, medium, or large.")
+    
     photo = db.query(Photo).filter(Photo.id == photo_id, Photo.user_id == current_user.id).first()
-    if not photo: raise HTTPException(status_code=404, detail="Photo not found")
+    if not photo:
+        raise HTTPException(status_code=404, detail="Photo not found")
     
-    thumb_path = os.path.join(settings.STORAGE_PATH, "thumbnails", str(photo.id), f"{size}.webp")
-    if os.path.exists(thumb_path) and photo.thumbnail_status == "done":
-        return FileResponse(thumb_path, media_type="image/webp")
+    thumb_base = os.path.join(settings.STORAGE_PATH, "thumbnails", str(photo.id))
+    requested_path = os.path.join(thumb_base, f"{size}.webp")
     
-    return FileResponse(photo.storage_path, status_code=206)
+    # Serve the requested size if ready
+    if os.path.exists(requested_path):
+        return FileResponse(requested_path, media_type="image/webp",
+                           headers={"Cache-Control": "public, max-age=31536000"})
+    
+    # Fallback: try another available size
+    for fallback_size in ["medium", "large", "small"]:
+        fallback_path = os.path.join(thumb_base, f"{fallback_size}.webp")
+        if os.path.exists(fallback_path):
+            return FileResponse(fallback_path, media_type="image/webp",
+                               headers={"Cache-Control": "public, max-age=3600"})
+    
+    # Thumbnail not generated yet — for images serve original with 206 status
+    # For videos, we can't serve the raw video as an img src, return 202 (still processing)
+    if photo.mime_type and photo.mime_type.startswith("video/"):
+        raise HTTPException(status_code=202, detail="Thumbnail processing")
+    
+    return FileResponse(photo.storage_path, status_code=206,
+                       headers={"Cache-Control": "no-cache"})
 
 
 @router.get("/{photo_id}/original")
