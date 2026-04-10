@@ -7,11 +7,10 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     proxy: {
-      // Local dev only: proxy /api to the backend container
+      // Local dev only: always proxy to the backend Docker container
       '/api': {
-        target: process.env.VITE_API_URL || 'http://backend:8000',
+        target: 'http://backend:8000',
         changeOrigin: true,
-        rewrite: (path) => path  // keep /api prefix
       }
     }
   },
