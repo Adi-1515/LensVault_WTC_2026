@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: lensvault
+      POSTGRES_USER: lensvault
+      POSTGRES_PASSWORD: lensvault123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lensvault -d lensvault"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend:/app
+      - vault_storage:/vault
+    environment:
+      DATABASE_URL: postgresql://lensvault:lensvault123@db:5432/lensvault
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: change-this-to-a-long-random-string-in-production
+      STORAGE_PATH: /vault
+      CORS_ORIGINS: http://localhost:5173
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery:
+    build:
+      context: ./backend
+    command: celery -A app.workers.tasks worker --loglevel=info --concurrency=2
+    volumes:
+      - ./backend:/app
+      - vault_storage:/vault
+    environment:
+      DATABASE_URL: postgresql://lensvault:lensvault123@db:5432/lensvault
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: change-this-to-a-long-random-string-in-production
+      STORAGE_PATH: /vault
+      PYTHONPATH: /app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+    command: npm run dev -- --host 0.0.0.0
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      VITE_API_URL: http://localhost:8000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  vault_storage:
