@@ -108,7 +108,7 @@ const MapView = () => {
     photos.forEach(photo => {
       if (!photo.latitude || !photo.longitude) return;
 
-      const thumbUrl = withToken(getThumbnailUrl(photo.id, 'small'));
+      const thumbUrl = getThumbnailUrl(photo.id, 'small');
       const marker = L.marker([photo.latitude, photo.longitude], {
         icon: L.divIcon({
           className: '',
@@ -216,7 +216,7 @@ const MapView = () => {
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
                       <img
-                        src={withToken(getThumbnailUrl(photo.id, 'small'))}
+                        src={getThumbnailUrl(photo.id, 'small')}
                         style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0, background: 'var(--border-color)' }}
                         alt=""
                       />
@@ -280,7 +280,7 @@ const MapView = () => {
               </button>
             </div>
             <img
-              src={withToken(getThumbnailUrl(selectedPhoto.id, 'medium'))}
+              src={getThumbnailUrl(selectedPhoto.id, 'medium')}
               style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', borderRadius: '10px', background: 'var(--border-color)' }}
               alt=""
             />
