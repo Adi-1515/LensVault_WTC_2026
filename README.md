@@ -1,209 +1,304 @@
-<div align="center">
+# 🔐 LensVault
 
-# ◈ LensVault
+> **A self-hosted, privacy-first photo and video library** — a full alternative to Google Photos and Apple Photos that *you* own and control.
 
-### A privacy-first, self-hosted photo library that runs entirely on your own hardware.
-
-<br/>
-
-
-
-
-
-![Docker](https://img.shields.io/badge/Docker-v24.0+-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)
-![FastAPI](https://img.shields.io/badge/FastAPI-Latest-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
-
-<br/>
-
-*Built for **Watch The Code 2026** • Graphic Era Hill University, Haldwani Campus*
-
-</div>
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)](docker-compose.yml)
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi)](backend/)
+[![React](https://img.shields.io/badge/Frontend-React%2018-61DAFB?logo=react)](frontend/)
+[![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-336791?logo=postgresql)](docker-compose.yml)
 
 ---
 
-## 📸 Visual Demo
+## 📸 What is LensVault?
 
-> **Hackathon Judges:** Please view our video demonstration below.
+LensVault is a **self-hosted photo and video library** that runs entirely on your own hardware — a home server, NAS, VPS, or spare laptop. No cloud. No subscriptions. No data mining.
 
-https://github.com/user-attachments/assets/0badd42e-cd03-44be-bd52-76d2d7cee030
-
----
-
-## 🚀 Prerequisites
-
-Because LensVault is **fully containerized**, you do not need to install any dependencies on your local machine. You only need:
-
-| Tool | Version |
-|------|---------|
-| 🐳 Docker | v24.0+ |
-| 🔧 Docker Compose | v2.20+ |
-| 🌿 Git | Latest |
-
-> **Note:** For local development *outside* of Docker, you would additionally need **Node.js v20+** and **Python 3.11+**.
-
----
-
-## 🛠️ Installation & Setup
-
-Get your personal photo vault running in seconds with a single command.
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/WTC-Group-4/wtc-round-2-group-4-nextgen-solvers.git
-```
-
-### 2. Configure Environment Variables
-
-Copy the template environment file. The default values are **pre-configured** for the Docker setup.
-
-```bash
-cp .env.example .env
-```
-
-### 3. Spin Up the Infrastructure
-
-```bash
-docker compose up --build
-```
-
-### 4. Access the Application
-
-| Service | URL | Description |
-|---------|-----|-------------|
-| 🖥️ Frontend UI | [http://localhost:5173](http://localhost:5173) | Main application interface |
-| 📡 Backend API Docs | [http://localhost:8000/docs](http://localhost:8000/docs) | Interactive Swagger UI |
+It delivers the **Google Photos experience** — automatic organization, smart categories, fast search, albums, map view, and a beautiful web UI — while keeping every pixel on your own infrastructure.
 
 ---
 
 ## ✨ Features
 
-LensVault is built to **rival cloud providers** while keeping you in complete control of your data.
+### 📁 Media Management
+- **Drag & drop upload** for photos and videos (JPEG, PNG, WEBP, HEIC, MP4, MOV, AVI, MKV)
+- **Automatic deduplication** — same file uploaded twice? Only stored once (SHA-256 hash)
+- **EXIF metadata extraction** — date, GPS, camera model, aperture, ISO, shutter speed
+- **Background thumbnail generation** — Small / Medium / Large WebP via Celery workers
+- **Non-destructive** — originals are never modified
 
-| Feature | Description |
-|---------|-------------|
-| 🔒 **100% Private & Self-Hosted** | No data ever leaves your local network. No subscriptions. |
-| 🧠 **Smart Deduplication** | Calculates SHA-256 hash on upload — identical photos are stored only once, saving disk space. |
-| 📊 **Automatic Metadata Extraction** | Parses EXIF data to extract canonical date, camera make/model, and dimensions. |
-| ⚡ **Asynchronous Processing** | Uploads are lightning-fast. Heavy tasks like WebP thumbnail generation run in the background via Celery and Redis. |
-| 🎨 **Glassmorphism UI** | A sleek, responsive, frosted-glass interface built with Tailwind CSS. |
-| 🔍 **Advanced Search Engine** | Query your vault with powerful syntax — e.g., `taken:2024-01-01..2024-12-31`, `camera:"iPhone"`, `favourite:true`. |
-| 🗂️ **Dynamic Albums** | Organize memories into custom collections without duplicating files on disk. |
+### 🗂️ Organization
+- **Timeline view** — chronological grid grouped by month/year
+- **Albums** — create, edit, share, and delete photo collections
+- **Smart Categories** — Favourites, Videos, Screenshots, Recently Added
+- **Album sharing** — generate public share links, revoke anytime
+- **Drag photo into albums** — multi-select & batch add
 
----
+### 🔍 Search
+- **Full-text search** — filename, title, description, tags
+- **Syntax search** — `type:video`, `taken:2023`, `tag:holiday`, `camera:iPhone`, `album:Japan`
+- **Date range** — `taken:2023-01-01..2023-06-30`
+- **Filter chips** — one-click filters for Photos, Videos, Favourites, This Year
 
-## 💻 Tech Stack
+### 🗺️ Map View
+- Interactive **Leaflet.js map** with OpenStreetMap tiles
+- All geotagged photos as clickable photo markers
+- Click a marker → see thumbnail popup with date
 
-<details>
-<summary><strong>🎨 Frontend</strong></summary>
+### 💡 Smart Features
+- **"On This Day" memories** — horizontal strip of past photos taken on today's date
+- **Favourites** — heart any photo, browse your starred collection
+- **Inline metadata editing** — edit title and tags directly in the lightbox
+- **Video preview cards** — native browser-rendered first frame + play button overlay
 
-| Technology | Purpose |
-|-----------|---------|
-| **React 18 + Vite** | Fast HMR and optimized builds |
-| **Tailwind CSS** | Utility-first styling, custom Glassmorphism theme |
-| **React Router v6** | Client-side routing |
-| **Axios** | API client |
+### 🎨 UI / UX
+- **Apple Photos + Vercel aesthetic** — clean, minimal, premium design
+- **Collapsible sidebar** — icon-only mode with smooth animation
+- **Dark/Light mode** — auto-detected from OS preference
+- **Lightbox viewer** — fullscreen, zoom, keyboard navigation (←/→/Esc), EXIF panel
+- **Video playback** in lightbox
+- **GPS link** — click coordinates to open in Google Maps
+- **Context-aware uploads** — Videos page opens video-only file picker
 
-</details>
-
-<details>
-<summary><strong>⚙️ Backend</strong></summary>
-
-| Technology | Purpose |
-|-----------|---------|
-| **Python 3.11** | Core language |
-| **FastAPI** | High-performance, async-native API framework |
-| **SQLAlchemy + Alembic** | ORM and database migrations |
-| **Pillow & piexif** | Image processing and metadata extraction |
-
-</details>
-
-<details>
-<summary><strong>🏗️ Infrastructure & Data</strong></summary>
-
-| Technology | Purpose |
-|-----------|---------|
-| **PostgreSQL 15** | ACID-compliant database with JSONB for flexible metadata storage |
-| **Redis 7** | In-memory message broker |
-| **Celery** | Distributed task queue |
-| **Docker & Docker Compose** | Containerization |
-
-</details>
+### 🔐 Security
+- **JWT authentication** — secure login/register
+- **Per-user isolation** — users only see their own photos
+- **Token-authenticated thumbnails** — images require valid session
 
 ---
 
-## ⚙️ Configuration
+## 🏗️ Architecture
 
-LensVault is configured via the `.env` file. For **production deployments**,update the following variables:
-
-| Variable | Description | Default (Docker) |
-|----------|-------------|-----------------|
-| `DATABASE_URL` | Postgres connection string | `postgresql://lensvault:lensvault123@db:5432/lensvault` |
-| `REDIS_URL` | Redis connection string | `redis://redis:6379/0` |
-| `SECRET_KEY` | JWT signing key — **must be changed in production!** | `lensvault_auuv` |
-| `STORAGE_PATH` | Path where physical files are stored | `/vault` |
-
-> ⚠️ **Security Warning:** Always rotate the `SECRET_KEY` before deploying to a production environment.
-
----
-
-## 👥 Team Contributions — NextGen Solvers
-
-| Member | Role | Key Contributions |
-|--------|------|------------------|
-| **Uttam** | Backend Lead | Auth, Photo Upload, EXIF, Models |
-| **Akshat** | DevOps + Backend | Docker, Celery, Albums, Search |
-| **Ujjwal** | Frontend Lead | Timeline, Upload UI, Lightbox |
-| **Vidhisha** | Frontend Features | Auth Pages, Albums UI, Search |
-
----
-
-## 📈 Benchmarking & Performance Testing
-
-LensVault was architected to handle **massive libraries** with minimal latency.
-
-### 🎯 Expected Performance Targets
-
-| Metric | Target |
-|--------|--------|
-| Timeline initial load *(10,000 photo library)* | **< 2 seconds** |
-| Photo thumbnail load *(cache warm)* | **< 100 ms** |
-| Search results *(metadata, 50,000 photos)* | **< 500 ms** |
-| Photo upload API response | **< 200 ms** *(original saved; thumbnail async)* |
-
-### 🧪 How to Run Load Tests
-
-To validate our performance metrics, we include an industry-standard **Locust** load testing script.
-
-**Step 1 —** Install Locust in your Python environment:
-
-```bash
-pip install locust
+```
+┌─────────────────────────────────────────────────────────┐
+│                      LensVault                          │
+│                                                         │
+│   ┌──────────┐    ┌──────────┐    ┌────────────────┐   │
+│   │  React   │───▶│ FastAPI  │───▶│  PostgreSQL 15 │   │
+│   │  Vite    │    │  Python  │    │                │   │
+│   └──────────┘    └────┬─────┘    └────────────────┘   │
+│                        │                                │
+│              ┌─────────┴──────────┐                     │
+│              │                    │                     │
+│         ┌────▼────┐          ┌────▼────┐               │
+│         │  Redis  │◀────────▶│ Celery  │               │
+│         │ (Queue) │          │(Workers)│               │
+│         └─────────┘          └────┬────┘               │
+│                                   │                     │
+│                         ┌─────────▼──────────┐          │
+│                         │   /vault/ Storage   │         │
+│                         │  originals/         │         │
+│                         │  thumbnails/        │         │
+│                         └────────────────────┘          │
+└─────────────────────────────────────────────────────────┘
 ```
 
-**Step 2 —** Start the LensVault containers:
+| Layer | Technology |
+|---|---|
+| Frontend | React 18, Vite, Vanilla CSS |
+| Backend | FastAPI (Python 3.11) |
+| Database | PostgreSQL 15 |
+| Job Queue | Celery + Redis |
+| Thumbnails | Pillow → WebP (240px / 720px / 1440px) |
+| Auth | JWT (python-jose + passlib bcrypt) |
+| Map | Leaflet.js + OpenStreetMap |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) + [Docker Compose](https://docs.docker.com/compose/)
+- Git
+
+### 1. Clone the repository
 
 ```bash
-docker compose up -d
+git clone https://github.com/WTC-final-round/final-round-team-explorers.git
+cd final-round-team-explorers
 ```
 
-**Step 3 —** Run the load test script from the project root:
+### 2. Configure environment
 
 ```bash
-locust -f load_test/locustfile.py
+cp .env.example .env
 ```
 
-**Step 4 —** Open the Locust web interface at [http://localhost:8089](http://localhost:8089).
+Edit `.env`:
 
-Enter the number of simulated users (e.g., `100`), the spawn rate (e.g., `10`), and set the host to `http://localhost:8000`. Click **Start Swarming** to view real-time latency and throughput charts!
+```env
+DATABASE_URL=postgresql://lensvault:lensvault@db:5432/lensvault
+REDIS_URL=redis://redis:6379/0
+SECRET_KEY=your-secret-key-change-this-in-production
+STORAGE_PATH=/vault
+CORS_ORIGINS=http://localhost:5173
+```
+
+> **Tip:** Generate a strong secret key with `openssl rand -hex 32`
+
+### 3. Start LensVault
+
+```bash
+docker compose up --build
+```
+
+First run takes 2–3 minutes to pull images and build containers.
+
+### 4. Open the app
+
+| Service | URL |
+|---|---|
+| **LensVault Web UI** | http://localhost:5173 |
+| **API Docs (Swagger)** | http://localhost:8000/docs |
+| **API Health Check** | http://localhost:8000/health |
+
+Register your account and start uploading photos! 🎉
+
+---
+
+## 📂 Project Structure
+
+```
+lensvault/
+├── backend/
+│   ├── app/
+│   │   ├── api/            # Route handlers
+│   │   │   ├── auth.py     # Login, register, JWT
+│   │   │   ├── photos.py   # Upload, list, smart filters, stats
+│   │   │   ├── albums.py   # CRUD, share tokens
+│   │   │   └── search.py   # Full-text + metadata search
+│   │   ├── models/         # SQLAlchemy ORM models
+│   │   ├── schemas/        # Pydantic response schemas
+│   │   ├── utils/          # EXIF, hashing, storage helpers
+│   │   └── workers/        # Celery thumbnail tasks
+│   ├── requirements.txt
+│   └── Dockerfile
+│
+├── frontend/
+│   └── src/
+│       ├── pages/
+│       │   ├── Timeline.jsx    # Main photo grid + memories
+│       │   ├── Albums.jsx      # Album list
+│       │   ├── AlbumDetail.jsx # Album view + share
+│       │   ├── Favourites.jsx  # Starred photos
+│       │   ├── Videos.jsx      # Video smart category
+│       │   ├── Search.jsx      # Search + filter chips
+│       │   ├── MapView.jsx     # Leaflet map
+│       │   ├── Settings.jsx    # Stats + system info
+│       │   ├── Login.jsx
+│       │   └── Register.jsx
+│       ├── components/
+│       │   ├── Navbar.jsx      # Collapsible sidebar
+│       │   ├── ProtectedRoute.jsx  # Layout + upload panel
+│       │   ├── Lightbox.jsx    # Fullscreen viewer
+│       │   ├── PhotoGrid.jsx   # Month-grouped grid
+│       │   ├── PhotoCard.jsx   # Individual photo/video card
+│       │   └── UploadZone.jsx  # Drag & drop upload
+│       ├── services/
+│       │   └── api.js          # Axios API client
+│       └── index.css           # Design system (CSS variables)
+│
+└── docker-compose.yml
+```
+
+---
+
+## 🔌 API Reference
+
+### Auth
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/auth/register` | Create account |
+| `POST` | `/api/auth/token` | Login → JWT token |
+| `GET` | `/api/auth/me` | Get current user |
+
+### Photos
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/photos/upload` | Upload photo/video |
+| `GET` | `/api/photos/` | List photos (paginated) |
+| `GET` | `/api/photos/?filter=favourites` | Smart filter |
+| `GET` | `/api/photos/memories` | "On This Day" |
+| `GET` | `/api/photos/geotagged` | GPS-tagged photos |
+| `GET` | `/api/photos/stats` | Library statistics |
+| `GET` | `/api/photos/{id}/thumbnail/{size}` | WebP thumbnail |
+| `GET` | `/api/photos/{id}/original` | Download original |
+| `PATCH` | `/api/photos/{id}/favourite` | Toggle favourite |
+| `PATCH` | `/api/photos/{id}/metadata` | Edit title/tags |
+| `DELETE` | `/api/photos/{id}` | Delete photo |
+
+### Albums
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/albums/` | List albums |
+| `POST` | `/api/albums/` | Create album |
+| `GET` | `/api/albums/{id}` | Album + photos |
+| `PATCH` | `/api/albums/{id}` | Update album |
+| `DELETE` | `/api/albums/{id}` | Delete album |
+| `POST` | `/api/albums/{id}/photos` | Add photos (batch) |
+| `DELETE` | `/api/albums/{id}/photos/{photoId}` | Remove photo |
+| `POST` | `/api/albums/{id}/share` | Generate/revoke share link |
+
+### Search
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/search/?q=...` | Search with query |
+
+**Search syntax examples:**
+```
+tag:holiday
+type:video
+taken:2023
+taken:2023-01-01..2023-06-30
+camera:iPhone
+album:Japan
+favourite:true
+sunset beach        ← free text (filename, title, description)
+```
+
+---
+
+## 🔧 Configuration
+
+| Variable | Default | Description |
+|---|---|---|
+| `DATABASE_URL` | `postgresql://...` | PostgreSQL connection string |
+| `REDIS_URL` | `redis://redis:6379/0` | Redis for Celery |
+| `SECRET_KEY` | — | JWT signing secret (**change in production!**) |
+| `STORAGE_PATH` | `/vault` | Where originals and thumbnails are stored |
+| `CORS_ORIGINS` | `http://localhost:5173` | Allowed frontend origins |
+
+---
+
+## 🗺️ Roadmap
+
+| Feature | Status |
+|---|---|
+| Photo & Video Upload | ✅ Done |
+| EXIF Extraction | ✅ Done |
+| Thumbnail Generation | ✅ Done |
+| Timeline View | ✅ Done |
+| Albums with Sharing | ✅ Done |
+| Smart Categories | ✅ Done |
+| Full-Text Search | ✅ Done |
+| Map View (Leaflet) | ✅ Done |
+| "On This Day" Memories | ✅ Done |
+| Lightbox with Metadata Edit | ✅ Done |
+| Collapsible Sidebar | ✅ Done |
+| OCR Text Search | 🔜 Planned |
+| AI Face Grouping | 🔜 Planned (opt-in) |
+| Semantic Search (CLIP) | 🔜 Planned |
+| Mobile PWA | 🔜 Planned |
+
+---
+
+## 📄 License
+
+MIT License — see [LICENSE](LICENSE)
 
 ---
 
 <div align="center">
-
-*Built from 🧠 for **Watch The Code 2026** • Graphic Era Hill University, Haldwani Campus*
-
+  <sub>Built with ❤️ for Watch The Code 2026 · Team Explorers</sub>
 </div>
