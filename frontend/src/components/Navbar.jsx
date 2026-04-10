@@ -3,10 +3,10 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import {
   Clock, Folder, Heart, Video, Sparkles, Users, Map,
-  Settings, Hexagon, LogOut
+  Settings, Hexagon, LogOut, X
 } from 'lucide-react';
 
-const Navbar = ({ isOpen = true }) => {
+const Navbar = ({ isOpen = true, isMobileOpen = false, onClose }) => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
@@ -22,8 +22,13 @@ const Navbar = ({ isOpen = true }) => {
     <Link
       to={comingSoon ? '#' : to}
       className={`nav-link ${isActive(to) ? 'active' : ''}`}
-      style={{ opacity: comingSoon ? 0.45 : 1, cursor: comingSoon ? 'default' : 'pointer', justifyContent: isOpen ? 'flex-start' : 'center' }}
+      style={{
+        opacity: comingSoon ? 0.45 : 1,
+        cursor: comingSoon ? 'default' : 'pointer',
+        justifyContent: isOpen ? 'flex-start' : 'center'
+      }}
       title={!isOpen ? label : undefined}
+      onClick={() => isMobileOpen && onClose?.()}
     >
       <Icon size={16} style={{ flexShrink: 0 }} />
       {isOpen && label}
@@ -36,13 +41,25 @@ const Navbar = ({ isOpen = true }) => {
   );
 
   return (
-    <aside className={`sidebar ${isOpen ? '' : 'sidebar-is-collapsed'}`}>
-      <Link to="/timeline" className="sidebar-logo" style={{ justifyContent: isOpen ? 'flex-start' : 'center' }}>
-        <div style={{ background: 'var(--accent-color)', borderRadius: '8px', padding: '6px', color: 'white', display: 'flex', flexShrink: 0 }}>
-          <Hexagon size={18} fill="currentColor" />
-        </div>
-        {isOpen && <span>LensVault</span>}
-      </Link>
+    <aside className={`sidebar ${isOpen ? '' : 'sidebar-is-collapsed'} ${isMobileOpen ? 'sidebar-mobile-open' : ''}`}>
+      {/* Logo + mobile close */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+        <Link to="/timeline" className="sidebar-logo" style={{ justifyContent: isOpen ? 'flex-start' : 'center', margin: 0 }}
+          onClick={() => isMobileOpen && onClose?.()}>
+          <div style={{ background: 'var(--accent-color)', borderRadius: '8px', padding: '6px', color: 'white', display: 'flex', flexShrink: 0 }}>
+            <Hexagon size={18} fill="currentColor" />
+          </div>
+          {isOpen && <span>LensVault</span>}
+        </Link>
+        {isMobileOpen && (
+          <button
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px', display: 'flex' }}
+          >
+            <X size={20} />
+          </button>
+        )}
+      </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
         {isOpen && <div className="sidebar-section-title">Library</div>}

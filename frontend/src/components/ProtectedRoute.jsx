@@ -1,16 +1,30 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import Navbar from './Navbar';
 import UploadZone from './UploadZone';
-import { PanelLeft, Search, Upload, X } from 'lucide-react';
+import { Menu, Search, Upload, X } from 'lucide-react';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
   const [showUpload, setShowUpload] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // Close mobile nav on route change
+  useEffect(() => {
+    setMobileNavOpen(false);
+    setShowUpload(false);
+  }, [location.pathname]);
+
+  // Close upload if we navigate to map
+  useEffect(() => {
+    if (location.pathname === '/map') setShowUpload(false);
+  }, [location.pathname]);
+
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
 
   // Determine upload mode from current route
   const uploadMode = location.pathname === '/videos'
@@ -33,62 +47,66 @@ const ProtectedRoute = ({ children }) => {
 
   return (
     <div className="app-container">
-      <Navbar isOpen={sidebarOpen} />
+      {/* Mobile overlay when nav is open */}
+      {mobileNavOpen && (
+        <div
+          className="mobile-overlay"
+          onClick={() => setMobileNavOpen(false)}
+        />
+      )}
 
-      <div className={`main-wrapper ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
+      <Navbar
+        isOpen={mobileNavOpen ? true : sidebarOpen}
+        isMobileOpen={mobileNavOpen}
+        onClose={() => setMobileNavOpen(false)}
+      />
+
+      <div className={`main-wrapper ${sidebarOpen && !mobileNavOpen ? '' : 'sidebar-collapsed'}`}>
         {/* Sticky top header */}
         <header className="top-header">
+          {/* Desktop: panel toggle | Mobile: hamburger */}
           <button
-            onClick={() => setSidebarOpen(v => !v)}
-            style={{
-              background: 'transparent', border: 'none',
-              color: sidebarOpen ? 'var(--text-primary)' : 'var(--text-muted)',
-              cursor: 'pointer', display: 'flex', alignItems: 'center',
-              padding: '6px', borderRadius: '8px', transition: 'all 0.2s ease'
+            onClick={() => {
+              if (window.innerWidth <= 768) {
+                setMobileNavOpen(v => !v);
+              } else {
+                setSidebarOpen(v => !v);
+              }
             }}
-            title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+            className="header-icon-btn"
+            title="Toggle sidebar"
           >
-            <PanelLeft size={18} />
+            <Menu size={20} />
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* Search — hide label on mobile */}
             <div
               onClick={() => navigate('/search')}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
-                color: 'var(--text-secondary)', fontSize: '0.875rem', cursor: 'pointer',
-                padding: '6px 14px', borderRadius: '20px',
-                border: '1px solid var(--border-color)',
-                background: 'var(--bg-surface-hover)',
-                transition: 'all 0.2s ease'
-              }}
+              className="search-pill"
             >
               <Search size={14} />
-              <span>Search</span>
-              <span style={{ fontSize: '0.7rem', background: 'var(--border-color)', padding: '1px 6px', borderRadius: '5px', color: 'var(--text-muted)' }}>⌘K</span>
+              <span className="search-pill-label">Search</span>
+              <span className="search-pill-kbd">⌘K</span>
             </div>
 
             {location.pathname !== '/map' && (
               <button
                 onClick={() => setShowUpload(v => !v)}
+                className="upload-btn"
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '6px',
-                  padding: '6px 14px',
                   background: showUpload ? 'var(--danger-color)' : 'var(--accent-color)',
-                  color: 'white', border: 'none', borderRadius: '20px',
-                  cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500,
-                  transition: 'all 0.2s ease'
                 }}
               >
                 {showUpload ? <X size={14} /> : <Upload size={14} />}
-                {showUpload ? 'Close' : 'Upload'}
+                <span className="upload-btn-label">{showUpload ? 'Close' : 'Upload'}</span>
               </button>
             )}
           </div>
         </header>
 
         {showUpload && location.pathname !== '/map' && (
-          <div style={{ padding: '16px 32px', background: 'var(--bg-sidebar)', borderBottom: '1px solid var(--border-color)' }}>
+          <div style={{ padding: '16px', background: 'var(--bg-sidebar)', borderBottom: '1px solid var(--border-color)' }}>
             <UploadZone
               mode={uploadMode}
               onUploadComplete={(photo) => {
