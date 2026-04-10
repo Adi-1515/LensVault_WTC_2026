@@ -68,24 +68,26 @@ const ProtectedRoute = ({ children }) => {
               <span style={{ fontSize: '0.7rem', background: 'var(--border-color)', padding: '1px 6px', borderRadius: '5px', color: 'var(--text-muted)' }}>⌘K</span>
             </div>
 
-            <button
-              onClick={() => setShowUpload(v => !v)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                padding: '6px 14px',
-                background: showUpload ? 'var(--danger-color)' : 'var(--accent-color)',
-                color: 'white', border: 'none', borderRadius: '20px',
-                cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500,
-                transition: 'all 0.2s ease'
-              }}
-            >
-              {showUpload ? <X size={14} /> : <Upload size={14} />}
-              {showUpload ? 'Close' : 'Upload'}
-            </button>
+            {location.pathname !== '/map' && (
+              <button
+                onClick={() => setShowUpload(v => !v)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '6px 14px',
+                  background: showUpload ? 'var(--danger-color)' : 'var(--accent-color)',
+                  color: 'white', border: 'none', borderRadius: '20px',
+                  cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500,
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                {showUpload ? <X size={14} /> : <Upload size={14} />}
+                {showUpload ? 'Close' : 'Upload'}
+              </button>
+            )}
           </div>
         </header>
 
-        {showUpload && (
+        {showUpload && location.pathname !== '/map' && (
           <div style={{ padding: '16px 32px', background: 'var(--bg-sidebar)', borderBottom: '1px solid var(--border-color)' }}>
             <UploadZone
               mode={uploadMode}
