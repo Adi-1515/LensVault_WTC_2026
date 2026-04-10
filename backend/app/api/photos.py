@@ -183,6 +183,25 @@ def update_metadata(photo_id: str, data: dict, db: Session = Depends(get_db), cu
     return enrich_photo_response(photo)
 
 
+@router.patch("/{photo_id}/location")
+def update_location(photo_id: str, data: dict, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Manually set or update GPS coordinates for a photo."""
+    photo = db.query(Photo).filter(Photo.id == photo_id, Photo.user_id == current_user.id).first()
+    if not photo:
+        raise HTTPException(status_code=404, detail="Photo not found")
+    lat = data.get("latitude")
+    lon = data.get("longitude")
+    if lat is None or lon is None:
+        raise HTTPException(status_code=400, detail="latitude and longitude are required")
+    if not (-90 <= float(lat) <= 90) or not (-180 <= float(lon) <= 180):
+        raise HTTPException(status_code=400, detail="Invalid coordinates")
+    photo.latitude = float(lat)
+    photo.longitude = float(lon)
+    db.commit()
+    db.refresh(photo)
+    return enrich_photo_response(photo)
+
+
 @router.get("/{photo_id}/thumbnail/{size}")
 def get_thumbnail(photo_id: str, size: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if size not in ["small", "medium", "large"]:

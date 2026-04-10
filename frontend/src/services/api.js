@@ -47,6 +47,8 @@ export const getPhoto = id => api.get(`/api/photos/${id}`);
 export const toggleFavourite = id => api.patch(`/api/photos/${id}/favourite`);
 export const deletePhoto = id => api.delete(`/api/photos/${id}`);
 export const updatePhotoMetadata = (id, data) => api.patch(`/api/photos/${id}/metadata`, data);
+export const updatePhotoLocation = (id, latitude, longitude) => api.patch(`/api/photos/${id}/location`, { latitude, longitude });
+
 
 // Smart Categories
 export const getMemories = () => api.get('/api/photos/memories');
