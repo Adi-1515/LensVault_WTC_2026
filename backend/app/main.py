@@ -1,32 +1,70 @@
+import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.database import engine, Base
 from app.config import settings
 
-from app.api import auth, photos, albums, search
+logger = logging.getLogger(__name__)
 
-# Auto-create tables for hackathon
-Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="LensVault API", description="Privacy-first photo library", version="2.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Run DB migrations on startup, gracefully handle missing DB."""
+    try:
+        from app.database import engine, Base
+        Base.metadata.create_all(bind=engine)
+        logger.info("✅ Database tables created/verified")
+    except Exception as e:
+        logger.warning(f"⚠️  Database not available at startup: {e}")
+        logger.warning("App will start anyway — DB-dependent routes will fail until connected")
+    yield
+    # Shutdown cleanup (if needed)
 
+
+app = FastAPI(
+    title="LensVault API",
+    description="Privacy-first photo library",
+    version="2.0.0",
+    lifespan=lifespan
+)
+
+# CORS — support comma-separated or single origin
+origins = [o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.CORS_ORIGINS],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+from app.api import auth, photos, albums, search
 app.include_router(auth.router)
 app.include_router(photos.router)
 app.include_router(albums.router)
 app.include_router(search.router)
 
+
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "service": "LensVault API", "version": "2.0.0"}
+    """Health check — always responds even if DB is down."""
+    db_ok = False
+    try:
+        from app.database import SessionLocal
+        db = SessionLocal()
+        db.execute(__import__('sqlalchemy').text("SELECT 1"))
+        db.close()
+        db_ok = True
+    except Exception:
+        pass
+    return {
+        "status": "ok" if db_ok else "degraded",
+        "service": "LensVault API",
+        "version": "2.0.0",
+        "database": "connected" if db_ok else "unavailable"
+    }
+
 
 @app.get("/")
 def root():
-    return {"message": "Welcome to LensVault API v2"}
+    return {"message": "Welcome to LensVault API v2", "docs": "/docs"}
