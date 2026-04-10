@@ -13,13 +13,20 @@ const MapView = () => {
   const [loading, setLoading] = useState(true);
   const [mapReady, setMapReady] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
-  const [pinMode, setPinMode] = useState(false);
-  const [pinningPhoto, setPinningPhoto] = useState(null);
+  const [pinMode, _setPinMode] = useState(false);
+  const [pinningPhoto, _setPinningPhoto] = useState(null);
   const [showPhotoList, setShowPhotoList] = useState(false);
+
 
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markersRef = useRef({});
+  const pinModeRef = useRef(false);
+  const pinningPhotoRef = useRef(null);
+
+  // Wrapped setters that keep refs in sync (Leaflet closures read refs, not state)
+  const setPinMode = (v) => { pinModeRef.current = v; _setPinMode(v); };
+  const setPinningPhoto = (v) => { pinningPhotoRef.current = v; _setPinningPhoto(v); };
 
   // Load geotagged photos
   const loadGeotagged = () => {
@@ -56,7 +63,7 @@ const MapView = () => {
     }
   }, []);
 
-  // Init map once Leaflet loads
+  // Init map once Leaflet is ready
   useEffect(() => {
     if (!mapReady || !mapRef.current || mapInstanceRef.current) return;
 
@@ -69,11 +76,18 @@ const MapView = () => {
       maxZoom: 19
     }).addTo(map);
 
+    // Fix grey tiles: call invalidateSize after a brief delay
+    setTimeout(() => map.invalidateSize(), 200);
+
+    // Also fix on window resize
+    const ro = new ResizeObserver(() => map.invalidateSize());
+    ro.observe(mapRef.current);
+
     // Click on map to drop a pin (when pin mode is on)
     map.on('click', (e) => {
-      if (!pinMode || !pinningPhoto) return;
+      if (!pinModeRef.current || !pinningPhotoRef.current) return;
       const { lat, lng } = e.latlng;
-      updatePhotoLocation(pinningPhoto.id, lat, lng).then(() => {
+      updatePhotoLocation(pinningPhotoRef.current.id, lat, lng).then(() => {
         setPinMode(false);
         setPinningPhoto(null);
         loadGeotagged();

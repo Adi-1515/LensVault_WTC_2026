@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { getOriginalUrl, updatePhotoMetadata } from '../services/api';
-import { Download, Heart, Trash2, X, ChevronLeft, ChevronRight, ZoomIn, Tag, Edit3, Check, MapPin } from 'lucide-react';
+import { getOriginalUrl, updatePhotoMetadata, updatePhotoLocation } from '../services/api';
+import LocationPicker from './LocationPicker';
+import { Download, Heart, Trash2, X, ChevronLeft, ChevronRight, Edit3, Check, MapPin, Navigation } from 'lucide-react';
 
 const MetaRow = ({ label, value }) => value ? (
   <div style={{ paddingBottom: '14px', borderBottom: '1px solid var(--border-color)' }}>
@@ -16,6 +17,7 @@ const Lightbox = ({ photo, photos, onClose, onFavouriteToggle, onDelete }) => {
   const [titleInput, setTitleInput] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState([]);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   useEffect(() => {
     const handleKey = (e) => {
@@ -205,24 +207,56 @@ const Lightbox = ({ photo, photos, onClose, onFavouriteToggle, onDelete }) => {
           {exif.ExposureTime && <MetaRow label="Exposure" value={`1/${Math.round(1 / exif.ExposureTime)}s`} />}
           {exif.FNumber && <MetaRow label="Aperture" value={`f/${exif.FNumber}`} />}
           {exif.ISOSpeedRatings && <MetaRow label="ISO" value={exif.ISOSpeedRatings} />}
-          {current.latitude && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingBottom: '14px', borderBottom: '1px solid var(--border-color)' }}>
-              <MapPin size={14} color="var(--text-muted)" />
+
+          {/* Location section */}
+          <div style={{ paddingBottom: '14px', borderBottom: '1px solid var(--border-color)' }}>
+            <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.05em', marginBottom: '8px' }}>Location</div>
+            {current.latitude ? (
               <div>
-                <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.05em' }}>GPS</div>
                 <a
                   href={`https://maps.google.com/?q=${current.latitude},${current.longitude}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ fontSize: '0.85rem', color: 'var(--accent-color)', textDecoration: 'none' }}
+                  target="_blank" rel="noreferrer"
+                  style={{ fontSize: '0.85rem', color: 'var(--accent-color)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}
                 >
+                  <MapPin size={13} />
                   {current.latitude.toFixed(5)}, {current.longitude.toFixed(5)}
                 </a>
+                <button
+                  onClick={() => setShowLocationPicker(true)}
+                  className="btn-secondary"
+                  style={{ width: '100%', fontSize: '0.8rem', padding: '6px', justifyContent: 'center' }}
+                >
+                  <Navigation size={13} /> Edit Location
+                </button>
               </div>
-            </div>
-          )}
+            ) : (
+              <button
+                onClick={() => setShowLocationPicker(true)}
+                className="btn-secondary"
+                style={{ width: '100%', fontSize: '0.82rem', padding: '8px', justifyContent: 'center', borderStyle: 'dashed' }}
+              >
+                <MapPin size={13} /> Set Location on Map
+              </button>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* LocationPicker modal */}
+      {showLocationPicker && (
+        <LocationPicker
+          initialLat={current.latitude}
+          initialLng={current.longitude}
+          onClose={() => setShowLocationPicker(false)}
+          onSave={async (lat, lng) => {
+            try {
+              const res = await updatePhotoLocation(current.id, lat, lng);
+              setCurrent(res.data);
+            } catch (e) { console.error(e); }
+            setShowLocationPicker(false);
+          }}
+        />
+      )}
     </div>
   );
 };
