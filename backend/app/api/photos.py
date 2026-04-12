@@ -62,6 +62,8 @@ def upload_photo(file: UploadFile = File(...), db: Session = Depends(get_db), cu
     db.refresh(new_photo)
     
     generate_thumbnails.delay(str(new_photo.id), storage_path)
+    from app.workers.tasks import extract_faces
+    extract_faces.delay(str(new_photo.id), storage_path)
     
     return enrich_photo_response(new_photo)
 

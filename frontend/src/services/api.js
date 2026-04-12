@@ -80,4 +80,16 @@ export const getOriginalUrl = id => {
   return `/api/photos/${id}/original?token=${token}`;
 };
 
+// Faces & People
+export const getFaceClusters = () => api.get('/api/faces/clusters');
+export const getPersons = () => api.get('/api/faces/persons');
+export const getPersonPhotos = (personId) => api.get(`/api/faces/persons/${personId}/photos`);
+export const assignCluster = (clusterId, name) => api.post(`/api/faces/clusters/${clusterId}/assign`, { name });
+export const triggerClustering = () => api.post('/api/faces/cluster');
+
+export const getFaceImageUrl = (faceId) => {
+  const token = localStorage.getItem('token');
+  return `/api/faces/${faceId}/image?token=${token}`;
+};
+
 export default api;

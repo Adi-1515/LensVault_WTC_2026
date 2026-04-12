@@ -12,6 +12,7 @@ async def lifespan(app: FastAPI):
     """Run DB migrations on startup, gracefully handle missing DB."""
     try:
         from app.database import engine, Base
+        import app.models.face # Import face model for table creation
         Base.metadata.create_all(bind=engine)
         logger.info("✅ Database tables created/verified")
     except Exception as e:
@@ -38,11 +39,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.api import auth, photos, albums, search
+from app.api import auth, photos, albums, search, faces
 app.include_router(auth.router)
 app.include_router(photos.router)
 app.include_router(albums.router)
 app.include_router(search.router)
+app.include_router(faces.router)
 
 
 @app.get("/health")

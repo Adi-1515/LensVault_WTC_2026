@@ -168,3 +168,102 @@ def retry_failed_thumbnails():
         logger.info(f"Retrying thumbnails for {len(failed)} photos")
     finally:
         db.close()
+
+# --- AI Face Grouping ---
+
+_face_app = None
+
+def get_face_app():
+    global _face_app
+    if _face_app is None:
+        import numpy as np
+        from insightface.app import FaceAnalysis
+        # Uses INSIGHTFACE_HOME which we mapped to /vault/ai_cache
+        _face_app = FaceAnalysis(name='buffalo_l')
+        _face_app.prepare(ctx_id=-1, det_size=(640, 640))
+    return _face_app
+
+def _save_face_crop(img_path: str, bbox: list, face_id: str):
+    """Crop the face from the original image and save it as WebP."""
+    try:
+        img = Image.open(img_path)
+        if img.mode not in ('RGB', 'RGBA'):
+            img = img.convert('RGB')
+        
+        x1, y1, x2, y2 = bbox
+        # Add 20% padding around the face
+        w, h = x2 - x1, y2 - y1
+        px, py = int(w * 0.2), int(h * 0.2)
+        x1, y1 = max(0, int(x1) - px), max(0, int(y1) - py)
+        x2, y2 = min(img.width, int(x2) + px), min(img.height, int(y2) + py)
+
+        crop = img.crop((x1, y1, x2, y2))
+        crop.thumbnail((150, 150), Image.LANCZOS)
+        
+        faces_dir = os.path.join(STORAGE_PATH, "faces")
+        os.makedirs(faces_dir, exist_ok=True)
+        out_path = os.path.join(faces_dir, f"{face_id}.webp")
+        crop.save(out_path, format="WEBP", quality=85)
+        return out_path
+    except Exception as e:
+        logger.error(f"Failed to save face crop for {face_id}: {e}")
+        return None
+
+@celery_app.task(bind=True, max_retries=3)
+def extract_faces(self, photo_id: str, original_path: str):
+    from app.database import SessionLocal
+    from app.models.photo import Photo
+    from app.models.user import User
+    from app.models.face import Face
+    import cv2
+    import numpy as np
+    
+    db = SessionLocal()
+    try:
+        photo = db.query(Photo).filter(Photo.id == photo_id).first()
+        if not photo or not os.path.exists(original_path):
+            return
+
+        # Skip videos and unsupported formats for now
+        ext = os.path.splitext(original_path)[1].lower()
+        if ext not in IMAGE_EXTENSIONS:
+            return
+
+        img = cv2.imread(original_path)
+        if img is None:
+            return
+
+        face_app = get_face_app()
+        faces = face_app.get(img)
+
+        logger.info(f"Detected {len(faces)} faces in {photo_id}")
+        
+        for f in faces:
+            bbox = f.bbox.astype(int).tolist()
+            embedding = f.embedding.astype(np.float32)
+
+            new_face = Face(
+                photo_id=photo.id,
+                user_id=photo.user_id,
+                bounding_box=bbox,
+                embedding=embedding.tobytes()
+            )
+            db.add(new_face)
+            db.flush() # get new_face.id
+
+            _save_face_crop(original_path, bbox, str(new_face.id))
+
+        db.commit()
+
+    except Exception as exc:
+        logger.exception(f"Face extraction failed for {photo_id}: {exc}")
+        db.rollback()
+        raise self.retry(exc=exc, countdown=2 ** self.request.retries)
+    finally:
+        db.close()
+
+@celery_app.task(bind=True)
+def run_clustering(self, user_id: str):
+    from app.workers.clustering import perform_dbscan
+    # Default eps = 0.5 as requested by user
+    perform_dbscan(user_id, eps=0.5)

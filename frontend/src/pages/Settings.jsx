@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { getStats } from '../services/api';
+import { getStats, triggerClustering } from '../services/api';
 import {
   Image, Video, Heart, MapPin, FolderOpen, HardDrive,
-  User, Shield, Cpu, Database
+  User, Shield, Cpu, Database, Users
 } from 'lucide-react';
 
 const StatCard = ({ icon: Icon, label, value, color }) => (
@@ -35,6 +35,7 @@ const StatCard = ({ icon: Icon, label, value, color }) => (
 const Settings = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [clusteringRunning, setClusteringRunning] = useState(false);
 
   useEffect(() => {
     getStats()
@@ -51,6 +52,18 @@ const Settings = () => {
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
   };
 
+  const handleTriggerClustering = async () => {
+    setClusteringRunning(true);
+    try {
+      await triggerClustering();
+      alert('Face clustering task has been started in the background!');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to trigger face clustering');
+    }
+    setClusteringRunning(false);
+  };
+
   return (
     <div style={{ paddingBottom: '80px', maxWidth: '900px', margin: '0 auto' }}>
       <div className="timeline-header">
@@ -60,9 +73,29 @@ const Settings = () => {
         </div>
       </div>
 
+      {/* Background Tasks */}
+      <section style={{ marginBottom: '40px' }}>
+        <h2 style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '16px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Background Tasks
+        </h2>
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '16px', padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Users size={18} color="var(--accent-color)" /> Re-run Face Clustering
+            </div>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '4px' }}>
+              Manually trigger DBSCAN algorithm to group new faces. This runs automatically on new uploads but this helps force a full library re-scan.
+            </div>
+          </div>
+          <button onClick={handleTriggerClustering} disabled={clusteringRunning} className="btn-secondary">
+            {clusteringRunning ? 'Triggering...' : 'Run Clustering'}
+          </button>
+        </div>
+      </section>
+
       {/* Storage Stats */}
       <section style={{ marginBottom: '40px' }}>
-        <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '16px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.75rem' }}>
+        <h2 style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '16px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           Library Statistics
         </h2>
         
@@ -102,7 +135,7 @@ const Settings = () => {
               ['Storage Backend', 'Local filesystem (/vault)'],
               ['Database', 'PostgreSQL 15'],
               ['Background Jobs', 'Celery + Redis'],
-              ['AI Processing', 'Tesseract OCR (pytesseract)'],
+              ['AI Processing', 'InsightFace (buffalo_l)'],
               ['Thumbnail Engine', 'Pillow (WebP)'],
             ].map(([k, v]) => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border-color)' }}>
@@ -130,8 +163,8 @@ const Settings = () => {
             { feature: 'Full-Text Search', status: 'active', note: 'Filename, title, tags, camera' },
             { feature: 'Map View', status: 'active', note: 'Leaflet.js with GPS data' },
             { feature: 'Album Sharing', status: 'active', note: 'Public share links' },
+            { feature: 'AI Face Grouping', status: 'active', note: 'InsightFace (buffalo) + DBSCAN' },
             { feature: 'OCR Text Search', status: 'planned', note: 'Tesseract, requires GPU/CPU time' },
-            { feature: 'AI Face Grouping', status: 'planned', note: 'InsightFace (opt-in)' },
             { feature: 'Semantic Search (CLIP)', status: 'planned', note: 'Optional AI module' },
           ].map((item, i) => (
             <div key={i} style={{

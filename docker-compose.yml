@@ -30,12 +30,14 @@ services:
     volumes:
       - ./backend:/app
       - vault_storage:/vault
+      - ./backend/pretrained_models/buffalo_l:/vault/ai_cache/models/buffalo_l
     environment:
       DATABASE_URL: postgresql://lensvault:lensvault123@db:5432/lensvault
       REDIS_URL: redis://redis:6379/0
       SECRET_KEY: change-this-to-a-long-random-string-in-production
       STORAGE_PATH: /vault
       CORS_ORIGINS: http://localhost:5173
+      INSIGHTFACE_HOME: /vault/ai_cache
     ports:
       - "8000:8000"
     depends_on:
@@ -51,12 +53,14 @@ services:
     volumes:
       - ./backend:/app
       - vault_storage:/vault
+      - ./backend/pretrained_models/buffalo_l:/vault/ai_cache/models/buffalo_l
     environment:
       DATABASE_URL: postgresql://lensvault:lensvault123@db:5432/lensvault
       REDIS_URL: redis://redis:6379/0
       SECRET_KEY: change-this-to-a-long-random-string-in-production
       STORAGE_PATH: /vault
       PYTHONPATH: /app
+      INSIGHTFACE_HOME: /vault/ai_cache
     depends_on:
       db:
         condition: service_healthy
