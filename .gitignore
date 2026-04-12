@@ -11,7 +11,7 @@ venv/
 # ML Models
 backend/
 pretrained_models/
-*.onnx
+
 
 # Local Storage (if mapped locally)
 vault/
