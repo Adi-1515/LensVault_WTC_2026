@@ -119,7 +119,17 @@ git clone https://github.com/WTC-final-round/final-round-team-explorers.git
 cd final-round-team-explorers
 ```
 
-### 2. Configure environment
+### 2. Download Pretrained Models
+
+The pretrained model and weights used for our AI Face Grouping feature are too large for Git. You must download them manually to enable this feature:
+
+1. Download the `buffalo_l` model from this link: [Google Drive - Pretrained Model](https://drive.google.com/file/d/1qXsQJ8ZT42_xSmWIYy85IcidpiZudOCB/view)
+2. Extract the downloaded ZIP file.
+3. Move the extracted `buffalo_l` folder into the backend directory at `backend/pretrained_models/buffalo_l`. 
+   
+*(Ensure the path structure looks like `backend/pretrained_models/buffalo_l/models/` inside your project)*
+
+### 3. Configure environment
 
 ```bash
 cp .env.example .env
@@ -137,7 +147,7 @@ CORS_ORIGINS=http://localhost:5173
 
 > **Tip:** Generate a strong secret key with `openssl rand -hex 32`
 
-### 3. Start LensVault
+### 4. Start LensVault
 
 ```bash
 docker compose up --build
@@ -145,7 +155,7 @@ docker compose up --build
 
 First run takes 2–3 minutes to pull images and build containers.
 
-### 4. Open the app
+### 5. Open the app
 
 | Service | URL |
 |---|---|
@@ -287,7 +297,7 @@ sunset beach        ← free text (filename, title, description)
 | Lightbox with Metadata Edit | ✅ Done |
 | Collapsible Sidebar | ✅ Done |
 | OCR Text Search | 🔜 Planned |
-| AI Face Grouping | 🔜 Planned (opt-in) |
+| AI Face Grouping | ✅ Done |
 | Semantic Search (CLIP) | 🔜 Planned |
 | Mobile PWA | 🔜 Planned |
 

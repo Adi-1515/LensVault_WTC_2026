@@ -70,7 +70,7 @@ const Navbar = ({ isOpen = true, isMobileOpen = false, onClose }) => {
 
         {isOpen && <div className="sidebar-section-title" style={{ marginTop: '16px' }}>Smart</div>}
         <NavLink to="#" icon={Sparkles} label="AI Tags" comingSoon />
-        <NavLink to="#" icon={Users} label="People" comingSoon />
+        <NavLink to="/people" icon={Users} label="People" />
         <NavLink to="/map" icon={Map} label="Map" />
       </div>
 

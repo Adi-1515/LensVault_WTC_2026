@@ -7,6 +7,7 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
     gcc \
+    g++ \
     libpq-dev \
     libjpeg-dev \
     libwebp-dev \
@@ -15,6 +16,14 @@ RUN apt-get update && apt-get install -y \
     ffmpeg \
     tesseract-ocr \
     && rm -rf /var/lib/apt/lists/*
+
+# RUN apt-get update && apt-get install -y \
+#     build-essential \
+#     g++ \
+#     cmake \
+#     libgl1 \
+#     libglib2.0-0 \
+#     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements from backend/ subdirectory
 COPY backend/requirements.txt .
