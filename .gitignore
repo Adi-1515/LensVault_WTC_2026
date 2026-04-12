@@ -8,9 +8,19 @@ env/
 venv/
 .env
 
-
 # ML Models
-backend/pretrained_models/*.onnx
+backend/
+pretrained_models/
+*.onnx
+
+# Local Storage (if mapped locally)
+vault/
+storage/
+*.webp
+*.jpg
+*.png
+!frontend/src/assets/**
+!backend/app/static/**
 
 # Node
 node_modules/
