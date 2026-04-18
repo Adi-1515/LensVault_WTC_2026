@@ -9,8 +9,7 @@ venv/
 .env
 
 # ML Models
-backend/
-pretrained_models/
+backend/pretrained_models/
 
 
 # Local Storage (if mapped locally)
