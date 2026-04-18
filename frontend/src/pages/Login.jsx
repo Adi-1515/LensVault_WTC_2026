@@ -1,15 +1,18 @@
 import React, { useState, useContext } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { Camera } from 'lucide-react';
+import { Camera, Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
   const { login, isAuthenticated } = useContext(AuthContext);
+  const location = useLocation();
+  const registeredSuccess = location.state?.registered;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(false);
-
+  
   if (isAuthenticated) return <Navigate to="/timeline" />;
 
   const handleSubmit = async (e) => {
@@ -38,6 +41,7 @@ const Login = () => {
         </div>
         
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {registeredSuccess && <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981', padding: '16px', borderRadius: '12px', fontSize: '0.9rem', backdropFilter: 'blur(10px)', textAlign: 'center' }}>🎉 Account created successfully! Please sign in.</div>}
           {err && <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--danger-color)', padding: '16px', borderRadius: '12px', fontSize: '0.9rem', backdropFilter: 'blur(10px)' }}>{err}</div>}
           
           <div>
@@ -46,7 +50,12 @@ const Login = () => {
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '8px', marginLeft: '4px' }}>Password</label>
-            <input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="input-field" placeholder="••••••••" />
+            <div style={{ position: 'relative' }}>
+              <input required type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} className="input-field" placeholder="••••••••" style={{ paddingRight: '44px' }} />
+              <button type="button" onClick={() => setShowPassword(v => !v)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px', display: 'flex', alignItems: 'center' }} aria-label="Toggle password visibility">
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
           
           <button disabled={loading} className="btn-primary" style={{ width: '100%', marginTop: '32px', padding: '16px', fontSize: '1rem', justifyContent: 'center' }}>

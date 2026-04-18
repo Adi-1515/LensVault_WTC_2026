@@ -159,7 +159,7 @@ First run takes 2–3 minutes to pull images and build containers.
 
 | Service | URL |
 |---|---|
-| **LensVault Web UI** | http://localhost:5173 |
+| **LensVault Web UI** | http://localhodst:5173 |
 | **API Docs (Swagger)** | http://localhost:8000/docs |
 | **API Health Check** | http://localhost:8000/health |
 

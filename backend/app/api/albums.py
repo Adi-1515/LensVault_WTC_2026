@@ -1,16 +1,23 @@
 import secrets
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, distinct
+from pydantic import BaseModel
+from typing import List
 
 from app.database import get_db
 from app.models.user import User
 from app.models.photo import Album, AlbumPhoto, Photo
+from app.models.face import Face, Person
 from app.schemas.photo import AlbumCreate, AlbumResponse, AlbumDetailResponse
 from app.api.auth import get_current_user
 from app.api.photos import enrich_photo_response
 
 router = APIRouter(prefix="/api/albums", tags=["albums"])
+
+class MultiPersonAlbumRequest(BaseModel):
+    person_ids: List[str]
+    album_name: str
 
 @router.get("/")
 def get_albums(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -34,6 +41,7 @@ def get_albums(db: Session = Depends(get_db), current_user: User = Depends(get_c
             "cover_photo_id": a.cover_photo_id, "photo_count": count,
             "is_public": a.is_public, "share_token": a.share_token,
             "cover_url": cover_url,
+            "album_type": a.album_type or "normal",
             "created_at": a.created_at
         })
     return res
@@ -133,8 +141,39 @@ def share_album(album_id: str, db: Session = Depends(get_db), current_user: User
     return {
         "is_public": album.is_public,
         "share_token": album.share_token,
-        "share_url": f"/shared/{album.share_token}" if album.share_token else None
+        "share_url": f"/share/album/{album.share_token}" if album.share_token else None
     }
+
+@router.post("/{album_id}/slideshow-share")
+def generate_slideshow_link(album_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Generate or regenerate a slideshow share token for an album."""
+    album = db.query(Album).filter(Album.id == album_id, Album.user_id == current_user.id).first()
+    if not album: raise HTTPException(status_code=404, detail="Album not found")
+    
+    # Always generate a fresh token (regenerate)
+    album.is_public = True
+    album.share_token = secrets.token_urlsafe(32)
+    db.commit()
+    db.refresh(album)
+    
+    return {
+        "is_public": album.is_public,
+        "share_token": album.share_token,
+        "share_url": f"/share/album/{album.share_token}"
+    }
+
+@router.delete("/{album_id}/slideshow-share")
+def revoke_slideshow_link(album_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Revoke the slideshow share token for an album."""
+    album = db.query(Album).filter(Album.id == album_id, Album.user_id == current_user.id).first()
+    if not album: raise HTTPException(status_code=404, detail="Album not found")
+    
+    album.is_public = False
+    album.share_token = None
+    db.commit()
+    db.refresh(album)
+    
+    return {"is_public": False, "share_token": None, "share_url": None}
 
 @router.get("/shared/{token}")
 def get_shared_album(token: str, db: Session = Depends(get_db)):
@@ -153,3 +192,61 @@ def get_shared_album(token: str, db: Session = Depends(get_db)):
         "photos": [enrich_photo_response(p) for p in ordered_photos],
         "total": len(ordered_photos)
     }
+
+
+@router.post("/multi-person")
+def create_multi_person_album(
+    data: MultiPersonAlbumRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Create a static album containing only photos where ALL selected people appear together."""
+    person_ids = data.person_ids
+    if len(person_ids) < 2:
+        raise HTTPException(status_code=400, detail="Select at least 2 people")
+
+    # Validate all person_ids belong to current user
+    persons = db.query(Person).filter(
+        Person.id.in_(person_ids),
+        Person.user_id == current_user.id
+    ).all()
+    if len(persons) != len(person_ids):
+        raise HTTPException(status_code=400, detail="One or more people not found")
+
+    person_names = [p.name for p in persons]
+
+    # Intersection query: photos where ALL selected people appear
+    photo_ids_query = (
+        db.query(Face.photo_id)
+        .filter(
+            Face.person_id.in_(person_ids),
+            Face.user_id == current_user.id
+        )
+        .group_by(Face.photo_id)
+        .having(func.count(distinct(Face.person_id)) == len(person_ids))
+    )
+    photo_ids = [row[0] for row in photo_ids_query.all()]
+
+    # Create the album with metadata for future recomputation
+    album_name = data.album_name or " + ".join(person_names)
+    new_album = Album(
+        user_id=current_user.id,
+        name=album_name,
+        album_type="people_intersection",
+        metadata_json={"person_ids": [str(pid) for pid in person_ids], "person_names": person_names}
+    )
+    db.add(new_album)
+    db.flush()
+
+    # Bulk insert photos into album
+    for i, photo_id in enumerate(photo_ids):
+        db.add(AlbumPhoto(album_id=new_album.id, photo_id=photo_id, sort_order=i))
+
+    # Set cover photo
+    if photo_ids:
+        new_album.cover_photo_id = photo_ids[0]
+
+    db.commit()
+    db.refresh(new_album)
+
+    return {"album_id": new_album.id, "photo_count": len(photo_ids)}

@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Uuid as UUID, JSON as JSONB, LargeBinary
+from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Uuid as UUID, JSON as JSONB, LargeBinary, Index
 from sqlalchemy.sql import func
 from app.database import Base
 
@@ -23,3 +23,7 @@ class Face(Base):
     cluster_id = Column(Integer, nullable=True, index=True) # DBSCAN group
     person_id = Column(UUID(as_uuid=True), ForeignKey("persons.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at = Column(DateTime, default=func.now())
+
+    __table_args__ = (
+        Index('ix_faces_person_photo', 'person_id', 'photo_id'),
+    )

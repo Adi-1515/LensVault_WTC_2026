@@ -1,12 +1,14 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import Navbar from './Navbar';
 import UploadZone from './UploadZone';
-import { Menu, Search, Upload, X } from 'lucide-react';
+import { Menu, Search, Upload, X, Sun, Moon } from 'lucide-react';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useContext(AuthContext);
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [showUpload, setShowUpload] = useState(false);
@@ -80,6 +82,19 @@ const ProtectedRoute = ({ children }) => {
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* Theme toggle */}
+            <button
+              onClick={toggleTheme}
+              className="theme-toggle"
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-label="Toggle theme"
+              id="theme-toggle-btn"
+            >
+              <span className="theme-toggle-thumb">
+                {theme === 'dark' ? <Moon size={11} /> : <Sun size={11} />}
+              </span>
+            </button>
+
             {/* Search — hide label on mobile */}
             <div
               onClick={() => navigate('/search')}

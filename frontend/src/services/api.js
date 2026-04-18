@@ -86,10 +86,24 @@ export const getPersons = () => api.get('/api/faces/persons');
 export const getPersonPhotos = (personId) => api.get(`/api/faces/persons/${personId}/photos`);
 export const assignCluster = (clusterId, name) => api.post(`/api/faces/clusters/${clusterId}/assign`, { name });
 export const triggerClustering = () => api.post('/api/faces/cluster');
+export const createMultiPersonAlbum = (personIds, albumName) =>
+  api.post('/api/albums/multi-person', { person_ids: personIds, album_name: albumName });
 
 export const getFaceImageUrl = (faceId) => {
   const token = localStorage.getItem('token');
   return `/api/faces/${faceId}/image?token=${token}`;
 };
 
+// Slideshow Sharing
+export const generateSlideshowLink = (albumId) => api.post(`/api/albums/${albumId}/slideshow-share`);
+export const revokeSlideshowLink = (albumId) => api.delete(`/api/albums/${albumId}/slideshow-share`);
+export const getSharedAlbum = (token) => axios.get(`/api/albums/shared/${token}`);
+
+// Public photo URLs (for slideshow viewer — no auth)
+export const getPublicThumbnailUrl = (photoId, shareToken, size = 'large') =>
+  `/api/photos/${photoId}/public/thumbnail/${size}?share_token=${shareToken}`;
+export const getPublicOriginalUrl = (photoId, shareToken) =>
+  `/api/photos/${photoId}/public/original?share_token=${shareToken}`;
+
 export default api;
+
