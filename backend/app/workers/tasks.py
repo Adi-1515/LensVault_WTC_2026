@@ -41,9 +41,12 @@ def _save_pil_thumbnails(img: Image.Image, thumb_dir: str):
         logger.info(f"Saved {size_name} thumbnail: {out_path}")
 
 
+from PIL import Image, ImageOps
+
 def _generate_image_thumbnails(original_path: str, thumb_dir: str):
     """Handle JPEG, PNG, WEBP, GIF, TIFF via Pillow."""
     img = Image.open(original_path)
+    img = ImageOps.exif_transpose(img)
     # Handle animated GIF — use first frame
     if getattr(img, 'is_animated', False):
         img.seek(0)
@@ -57,6 +60,7 @@ def _generate_heic_thumbnails(original_path: str, thumb_dir: str):
         from pillow_heif import register_heif_opener
         register_heif_opener()
         img = Image.open(original_path)
+        img = ImageOps.exif_transpose(img)
         _save_pil_thumbnails(img, thumb_dir)
     except ImportError:
         logger.warning("pillow-heif not installed; falling back to ffmpeg for HEIC")
@@ -109,6 +113,7 @@ def _generate_video_thumbnails(original_path: str, thumb_dir: str):
 @celery_app.task(bind=True, max_retries=3)
 def generate_thumbnails(self, photo_id: str, original_path: str):
     from app.database import SessionLocal
+    from app.models.user import User
     from app.models.photo import Photo
 
     db = SessionLocal()
@@ -156,6 +161,7 @@ def generate_thumbnails(self, photo_id: str, original_path: str):
 def retry_failed_thumbnails():
     """Periodic task to retry all photos with thumbnail_status='failed'."""
     from app.database import SessionLocal
+    from app.models.user import User
     from app.models.photo import Photo
 
     db = SessionLocal()

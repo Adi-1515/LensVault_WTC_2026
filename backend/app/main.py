@@ -13,6 +13,8 @@ async def lifespan(app: FastAPI):
     try:
         from app.database import engine, Base
         from sqlalchemy import text
+        import app.models.user
+        import app.models.photo
         import app.models.face # Import face model for table creation
         Base.metadata.create_all(bind=engine)
         logger.info("✅ Database tables created/verified")

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getOriginalUrl, updatePhotoMetadata, updatePhotoLocation } from '../services/api';
 import LocationPicker from './LocationPicker';
 import { Download, Heart, Trash2, X, ChevronLeft, ChevronRight, Edit3, Check, MapPin, Navigation } from 'lucide-react';
@@ -72,7 +73,7 @@ const Lightbox = ({ photo, photos, onClose, onFavouriteToggle, onDelete }) => {
 
   const exif = current.exif_json || {};
 
-  return (
+  return createPortal(
     <div className="lightbox-overlay">
       <button onClick={onClose} className="lightbox-close">
         <X size={20} />
@@ -102,7 +103,7 @@ const Lightbox = ({ photo, photos, onClose, onFavouriteToggle, onDelete }) => {
         )}
 
         {currentIndex < photos.length - 1 && (
-          <button onClick={nextPhoto} style={{ position: 'absolute', right: '360px', zIndex: 50, background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: '44px', height: '44px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(10px)' }}>
+          <button onClick={nextPhoto} style={{ position: 'absolute', right: '20px', zIndex: 50, background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: '44px', height: '44px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(10px)' }}>
             <ChevronRight size={28} />
           </button>
         )}
@@ -257,7 +258,8 @@ const Lightbox = ({ photo, photos, onClose, onFavouriteToggle, onDelete }) => {
           }}
         />
       )}
-    </div>
+    </div>,
+    document.body
   );
 };
 

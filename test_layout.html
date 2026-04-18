@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  .sidebar { width: 260px; height: 100vh; position: fixed; background: #eee; z-index: 100; }
+  .main-wrapper { margin-left: 260px; min-height: 100vh; }
+  .main-content { padding: 32px; transition: color 0.3s ease; }
+  .lightbox-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(40px); z-index: 1000; }
+</style>
+</head>
+<body>
+  <div class="sidebar">Sidebar</div>
+  <div class="main-wrapper">
+    <div class="main-content">
+      <div class="lightbox-overlay">Lightbox</div>
+    </div>
+  </div>
+</body>
+</html>

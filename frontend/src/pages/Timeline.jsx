@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { getTimeline, toggleFavourite, deletePhoto, getMemories } from '../services/api';
 import PhotoGrid from '../components/PhotoGrid';
 import Lightbox from '../components/Lightbox';
@@ -138,7 +139,7 @@ const Timeline = () => {
         />
       )}
 
-      {deleteConfirmId && (
+      {deleteConfirmId && createPortal(
         <div className="lightbox-overlay" style={{ alignItems: 'center', justifyContent: 'center' }}>
           <div className="glass-panel" style={{ padding: '30px', maxWidth: '400px', width: '100%', textAlign: 'center' }}>
             <div style={{ width: '60px', height: '60px', backgroundColor: 'rgba(239,68,68,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', border: '1px solid rgba(239,68,68,0.2)' }}>
@@ -153,7 +154,8 @@ const Timeline = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
