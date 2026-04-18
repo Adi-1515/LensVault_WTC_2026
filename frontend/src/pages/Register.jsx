@@ -1,10 +1,11 @@
 import React, { useState, useContext } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Camera } from 'lucide-react';
 
 const Register = () => {
   const { register, isAuthenticated } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -20,6 +21,7 @@ const Register = () => {
     setLoading(true); setErr('');
     try {
       await register(email, password);
+      navigate('/login', { state: { registered: true } });
     } catch (error) {
       setErr(error.response?.data?.detail || 'Registration failed');
     }
@@ -66,4 +68,4 @@ const Register = () => {
   );
 };
 
-export default Register;
+export default Register;
