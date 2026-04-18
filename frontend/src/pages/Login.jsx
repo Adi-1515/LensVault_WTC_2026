@@ -1,15 +1,17 @@
 import React, { useState, useContext } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Camera } from 'lucide-react';
 
 const Login = () => {
   const { login, isAuthenticated } = useContext(AuthContext);
+  const location = useLocation();
+  const registeredSuccess = location.state?.registered;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(false);
-
+  
   if (isAuthenticated) return <Navigate to="/timeline" />;
 
   const handleSubmit = async (e) => {
@@ -38,6 +40,7 @@ const Login = () => {
         </div>
         
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {registeredSuccess && <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981', padding: '16px', borderRadius: '12px', fontSize: '0.9rem', backdropFilter: 'blur(10px)', textAlign: 'center' }}>🎉 Account created successfully! Please sign in.</div>}
           {err && <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--danger-color)', padding: '16px', borderRadius: '12px', fontSize: '0.9rem', backdropFilter: 'blur(10px)' }}>{err}</div>}
           
           <div>
@@ -62,4 +65,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Login;
