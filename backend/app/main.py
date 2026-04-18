@@ -12,9 +12,24 @@ async def lifespan(app: FastAPI):
     """Run DB migrations on startup, gracefully handle missing DB."""
     try:
         from app.database import engine, Base
+        from sqlalchemy import text
         import app.models.face # Import face model for table creation
         Base.metadata.create_all(bind=engine)
         logger.info("✅ Database tables created/verified")
+
+        # Add new columns to existing tables (create_all won't do this)
+        with engine.connect() as conn:
+            conn.execute(text("""
+                ALTER TABLE albums ADD COLUMN IF NOT EXISTS album_type VARCHAR(50) DEFAULT 'normal' NOT NULL
+            """))
+            conn.execute(text("""
+                ALTER TABLE albums ADD COLUMN IF NOT EXISTS metadata_json JSON
+            """))
+            conn.execute(text("""
+                CREATE INDEX IF NOT EXISTS ix_faces_person_photo ON faces (person_id, photo_id)
+            """))
+            conn.commit()
+        logger.info("✅ Schema migrations applied")
     except Exception as e:
         logger.warning(f"⚠️  Database not available at startup: {e}")
         logger.warning("App will start anyway — DB-dependent routes will fail until connected")

@@ -77,6 +77,11 @@ const Albums = () => {
                   <Globe size={10} /> Shared
                 </div>
               )}
+              {a.album_type === 'people_intersection' && (
+                <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'rgba(99,102,241,0.85)', backdropFilter: 'blur(8px)', borderRadius: '99px', padding: '3px 8px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: 'white' }}>
+                  👥 People
+                </div>
+              )}
             </div>
 
             {/* Info */}

@@ -86,6 +86,8 @@ export const getPersons = () => api.get('/api/faces/persons');
 export const getPersonPhotos = (personId) => api.get(`/api/faces/persons/${personId}/photos`);
 export const assignCluster = (clusterId, name) => api.post(`/api/faces/clusters/${clusterId}/assign`, { name });
 export const triggerClustering = () => api.post('/api/faces/cluster');
+export const createMultiPersonAlbum = (personIds, albumName) =>
+  api.post('/api/albums/multi-person', { person_ids: personIds, album_name: albumName });
 
 export const getFaceImageUrl = (faceId) => {
   const token = localStorage.getItem('token');
