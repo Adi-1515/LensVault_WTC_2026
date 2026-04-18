@@ -106,7 +106,7 @@ const PhotoCard = ({ photo, onClick, onFavouriteToggle }) => {
           padding: '2px 8px', fontSize: '0.65rem', color: 'white',
           backdropFilter: 'blur(4px)'
         }}>
-          Processing…
+          …
         </div>
       )}
 
