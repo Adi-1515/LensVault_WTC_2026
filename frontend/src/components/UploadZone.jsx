@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { uploadPhoto } from '../services/api';
+import { uploadPhoto, triggerClustering } from '../services/api';
 import { UploadCloud, CheckCircle2, AlertCircle, Image, Video } from 'lucide-react';
 
 // mode: 'photos' | 'videos' | 'all'
@@ -28,6 +28,7 @@ const UploadZone = ({ onUploadComplete, mode = 'all' }) => {
   const Icon = mode === 'videos' ? Video : mode === 'photos' ? Image : UploadCloud;
 
   const onDrop = useCallback(async (acceptedFiles) => {
+    let hasSuccess = false;
     for (const file of acceptedFiles) {
       const id = Math.random().toString(36).substr(2, 9);
       setUploads(prev => ({ ...prev, [id]: { file, progress: 0, status: 'uploading' } }));
@@ -39,8 +40,17 @@ const UploadZone = ({ onUploadComplete, mode = 'all' }) => {
         });
         setUploads(prev => ({ ...prev, [id]: { ...prev[id], status: 'success' } }));
         onUploadComplete(res.data);
+        hasSuccess = true;
       } catch (err) {
         setUploads(prev => ({ ...prev, [id]: { ...prev[id], status: 'error' } }));
+      }
+    }
+    // Auto-trigger face clustering after successful uploads
+    if (hasSuccess) {
+      try {
+        await triggerClustering();
+      } catch (err) {
+        console.error('Auto-clustering failed:', err);
       }
     }
   }, [onUploadComplete]);

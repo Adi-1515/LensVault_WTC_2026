@@ -33,8 +33,7 @@
   --radius-xl: 24px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
+[data-theme="dark"] {
     --bg-base: #030712;
     --bg-surface: #0a0f1c;
     --bg-surface-hover: #1f2937;
@@ -46,7 +45,6 @@
     --border-hover: #374151;
     --accent-color: #3b82f6;
     --accent-light: rgba(59, 130, 246, 0.1);
-  }
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -58,6 +56,69 @@ body {
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
   overflow-x: hidden;
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+/* Smooth theme transition on key elements */
+.sidebar,
+.top-header,
+.main-content,
+.glass-panel,
+.search-pill,
+.input-field,
+.lightbox-sidebar,
+.nav-link,
+.btn-primary,
+.btn-secondary {
+  transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+/* =========================================================================
+   THEME TOGGLE BUTTON
+   ========================================================================= */
+
+.theme-toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 99px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface-hover);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: background-color 0.35s ease, border-color 0.35s ease;
+}
+
+.theme-toggle:hover {
+  border-color: var(--border-hover);
+}
+
+.theme-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), background 0.35s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.theme-toggle-thumb svg {
+  width: 11px;
+  height: 11px;
+  color: #fff;
+}
+
+[data-theme="dark"] .theme-toggle-thumb {
+  transform: translateX(20px);
 }
 
 /* Scrollbar */
