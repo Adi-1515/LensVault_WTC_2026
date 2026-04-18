@@ -141,8 +141,39 @@ def share_album(album_id: str, db: Session = Depends(get_db), current_user: User
     return {
         "is_public": album.is_public,
         "share_token": album.share_token,
-        "share_url": f"/shared/{album.share_token}" if album.share_token else None
+        "share_url": f"/share/album/{album.share_token}" if album.share_token else None
     }
+
+@router.post("/{album_id}/slideshow-share")
+def generate_slideshow_link(album_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Generate or regenerate a slideshow share token for an album."""
+    album = db.query(Album).filter(Album.id == album_id, Album.user_id == current_user.id).first()
+    if not album: raise HTTPException(status_code=404, detail="Album not found")
+    
+    # Always generate a fresh token (regenerate)
+    album.is_public = True
+    album.share_token = secrets.token_urlsafe(32)
+    db.commit()
+    db.refresh(album)
+    
+    return {
+        "is_public": album.is_public,
+        "share_token": album.share_token,
+        "share_url": f"/share/album/{album.share_token}"
+    }
+
+@router.delete("/{album_id}/slideshow-share")
+def revoke_slideshow_link(album_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Revoke the slideshow share token for an album."""
+    album = db.query(Album).filter(Album.id == album_id, Album.user_id == current_user.id).first()
+    if not album: raise HTTPException(status_code=404, detail="Album not found")
+    
+    album.is_public = False
+    album.share_token = None
+    db.commit()
+    db.refresh(album)
+    
+    return {"is_public": False, "share_token": None, "share_url": None}
 
 @router.get("/shared/{token}")
 def get_shared_album(token: str, db: Session = Depends(get_db)):
@@ -218,4 +249,4 @@ def create_multi_person_album(
     db.commit()
     db.refresh(new_album)
 
-    return {"album_id": new_album.id, "photo_count": len(photo_ids)}
+    return {"album_id": new_album.id, "photo_count": len(photo_ids)}

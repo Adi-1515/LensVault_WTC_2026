@@ -275,3 +275,66 @@ def delete_photo(photo_id: str, db: Session = Depends(get_db), current_user: Use
     db.delete(photo)
     db.commit()
     return Response(status_code=204)
+
+
+# =========================================================================
+#  PUBLIC PHOTO ENDPOINTS — for shared album slideshow (no auth required)
+# =========================================================================
+
+def _validate_public_photo_access(photo_id: str, share_token: str, db: Session):
+    """Validate that the photo belongs to a publicly shared album matching the token."""
+    album = db.query(Album).filter(
+        Album.share_token == share_token,
+        Album.is_public == True
+    ).first()
+    if not album:
+        raise HTTPException(status_code=404, detail="Share link not found or revoked")
+
+    # Verify photo is in this album
+    link = db.query(AlbumPhoto).filter(
+        AlbumPhoto.album_id == album.id,
+        AlbumPhoto.photo_id == photo_id
+    ).first()
+    if not link:
+        raise HTTPException(status_code=404, detail="Photo not found in shared album")
+
+    photo = db.query(Photo).filter(Photo.id == photo_id).first()
+    if not photo:
+        raise HTTPException(status_code=404, detail="Photo not found")
+
+    return photo
+
+
+@router.get("/{photo_id}/public/thumbnail/{size}")
+def get_public_thumbnail(photo_id: str, size: str, share_token: str = Query(...), db: Session = Depends(get_db)):
+    """Public thumbnail endpoint — no auth required. Validates share_token."""
+    if size not in ["small", "medium", "large"]:
+        raise HTTPException(status_code=400, detail="Invalid size. Use small, medium, or large.")
+
+    photo = _validate_public_photo_access(photo_id, share_token, db)
+
+    thumb_base = os.path.join(settings.STORAGE_PATH, "thumbnails", str(photo.id))
+    requested_path = os.path.join(thumb_base, f"{size}.webp")
+
+    if os.path.exists(requested_path):
+        return FileResponse(requested_path, media_type="image/webp",
+                           headers={"Cache-Control": "public, max-age=31536000"})
+
+    for fallback_size in ["medium", "large", "small"]:
+        fallback_path = os.path.join(thumb_base, f"{fallback_size}.webp")
+        if os.path.exists(fallback_path):
+            return FileResponse(fallback_path, media_type="image/webp",
+                               headers={"Cache-Control": "public, max-age=3600"})
+
+    if photo.mime_type and photo.mime_type.startswith("video/"):
+        raise HTTPException(status_code=202, detail="Thumbnail processing")
+
+    return FileResponse(photo.storage_path, status_code=206,
+                       headers={"Cache-Control": "no-cache"})
+
+
+@router.get("/{photo_id}/public/original")
+def get_public_original(photo_id: str, share_token: str = Query(...), db: Session = Depends(get_db)):
+    """Public original file endpoint — no auth required. Validates share_token."""
+    photo = _validate_public_photo_access(photo_id, share_token, db)
+    return FileResponse(photo.storage_path, headers={"Cache-Control": "public, max-age=86400"})

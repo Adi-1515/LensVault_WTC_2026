@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getAlbum, removePhotoFromAlbum, toggleFavourite, deleteAlbum, getTimeline, addPhotosToAlbum, shareAlbum, getThumbnailUrl } from '../services/api';
+import { getAlbum, removePhotoFromAlbum, toggleFavourite, deleteAlbum, getTimeline, addPhotosToAlbum, shareAlbum, generateSlideshowLink, revokeSlideshowLink, getThumbnailUrl } from '../services/api';
 import Lightbox from '../components/Lightbox';
 import PhotoGrid from '../components/PhotoGrid';
-import { Plus, Trash2, FolderOpen, ShieldAlert, Check, Share2, Copy, X, Globe, Lock } from 'lucide-react';
+import { Plus, Trash2, FolderOpen, ShieldAlert, Check, Share2, Copy, X, Globe, Lock, Presentation, ExternalLink, RefreshCw, Unlink } from 'lucide-react';
 
 const AlbumDetail = () => {
   const { id } = useParams();
@@ -21,6 +21,10 @@ const AlbumDetail = () => {
 
   const [shareInfo, setShareInfo] = useState(null);
   const [copied, setCopied] = useState(false);
+
+  const [slideshowInfo, setSlideshowInfo] = useState(null);
+  const [slideshowCopied, setSlideshowCopied] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => { fetchAlbum(); }, [id]);
 
@@ -86,6 +90,31 @@ const AlbumDetail = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleGenerateSlideshow = async () => {
+    setIsGenerating(true);
+    try {
+      const res = await generateSlideshowLink(id);
+      setSlideshowInfo(res.data);
+      setAlbum(prev => ({ ...prev, is_public: res.data.is_public, share_token: res.data.share_token }));
+    } catch (e) { console.error(e); }
+    setIsGenerating(false);
+  };
+
+  const handleRevokeSlideshow = async () => {
+    try {
+      const res = await revokeSlideshowLink(id);
+      setSlideshowInfo(null);
+      setAlbum(prev => ({ ...prev, is_public: false, share_token: null }));
+    } catch (e) { console.error(e); }
+  };
+
+  const copySlideshowLink = () => {
+    const url = `${window.location.origin}${slideshowInfo?.share_url}`;
+    navigator.clipboard.writeText(url);
+    setSlideshowCopied(true);
+    setTimeout(() => setSlideshowCopied(false), 2000);
+  };
+
   const toggleSelect = (pid) => setSelectedIds(prev => prev.includes(pid) ? prev.filter(i => i !== pid) : [...prev, pid]);
 
   if (!album) return <div style={{ padding: '40px', color: 'var(--text-muted)' }}>Loading album...</div>;
@@ -100,12 +129,44 @@ const AlbumDetail = () => {
         </div>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button onClick={openAddModal} className="btn-primary"><Plus size={16} /> Add Photos</button>
+          <button onClick={handleGenerateSlideshow} disabled={isGenerating || album.photos.length === 0} className="btn-secondary" style={{ color: album.share_token ? 'var(--accent-color)' : 'var(--text-primary)', borderColor: album.share_token ? 'var(--accent-color)' : undefined, background: album.share_token ? 'var(--accent-light)' : undefined }}>
+            <Presentation size={16} /> {isGenerating ? 'Generating...' : album.share_token ? 'Slideshow Link' : 'Generate Slideshow Link'}
+          </button>
           <button onClick={handleShare} className="btn-secondary" style={{ color: album.is_public ? 'var(--accent-color)' : 'var(--text-primary)' }}>
             {album.is_public ? <><Globe size={16} /> Shared</> : <><Share2 size={16} /> Share</>}
           </button>
           <button onClick={() => setShowDeleteConfirm(true)} className="btn-secondary" style={{ color: 'var(--danger-color)', borderColor: 'rgba(239,68,68,0.3)' }}><Trash2 size={16} /></button>
         </div>
       </div>
+
+      {/* Slideshow link display */}
+      {slideshowInfo?.share_url && (
+        <div style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.08), rgba(139,92,246,0.08))', border: '1px solid rgba(59,130,246,0.25)', borderRadius: '16px', padding: '18px 22px', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Presentation size={16} color="#fff" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '2px' }}>Slideshow Link Ready</div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontFamily: 'monospace', wordBreak: 'break-all' }}>{window.location.origin}{slideshowInfo.share_url}</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button onClick={copySlideshowLink} style={{ background: 'var(--accent-color)', color: 'white', border: 'none', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.2s ease' }}>
+              <Copy size={12} />{slideshowCopied ? 'Copied!' : 'Copy Link'}
+            </button>
+            <a href={slideshowInfo.share_url} target="_blank" rel="noreferrer" style={{ background: 'rgba(59,130,246,0.1)', color: 'var(--accent-color)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px', textDecoration: 'none', transition: 'all 0.2s ease' }}>
+              <ExternalLink size={12} />Open Slideshow
+            </a>
+            <button onClick={handleGenerateSlideshow} style={{ background: 'rgba(59,130,246,0.06)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.2s ease' }}>
+              <RefreshCw size={12} />Regenerate
+            </button>
+            <button onClick={handleRevokeSlideshow} style={{ background: 'rgba(239,68,68,0.06)', color: 'var(--danger-color)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: '8px', padding: '7px 14px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.2s ease' }}>
+              <Unlink size={12} />Revoke
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Share link display */}
       {shareInfo?.share_url && (
