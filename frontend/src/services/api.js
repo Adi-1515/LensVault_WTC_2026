@@ -94,4 +94,16 @@ export const getFaceImageUrl = (faceId) => {
   return `/api/faces/${faceId}/image?token=${token}`;
 };
 
+// Slideshow Sharing
+export const generateSlideshowLink = (albumId) => api.post(`/api/albums/${albumId}/slideshow-share`);
+export const revokeSlideshowLink = (albumId) => api.delete(`/api/albums/${albumId}/slideshow-share`);
+export const getSharedAlbum = (token) => axios.get(`/api/albums/shared/${token}`);
+
+// Public photo URLs (for slideshow viewer — no auth)
+export const getPublicThumbnailUrl = (photoId, shareToken, size = 'large') =>
+  `/api/photos/${photoId}/public/thumbnail/${size}?share_token=${shareToken}`;
+export const getPublicOriginalUrl = (photoId, shareToken) =>
+  `/api/photos/${photoId}/public/original?share_token=${shareToken}`;
+
 export default api;
+

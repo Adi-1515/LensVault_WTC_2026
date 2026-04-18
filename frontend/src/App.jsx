@@ -13,12 +13,17 @@ import MapView from './pages/MapView';
 import ProtectedRoute from './components/ProtectedRoute';
 import People from './pages/People';
 import PersonDetail from './pages/PersonDetail';
+import SlideshowViewer from './pages/SlideshowViewer';
 
 function App() {
   return (
     <Routes>
+      {/* Public routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/share/album/:token" element={<SlideshowViewer />} />
+
+      {/* Protected routes */}
       <Route path="/timeline" element={<ProtectedRoute><Timeline /></ProtectedRoute>} />
       <Route path="/albums" element={<ProtectedRoute><Albums /></ProtectedRoute>} />
       <Route path="/albums/:id" element={<ProtectedRoute><AlbumDetail /></ProtectedRoute>} />
