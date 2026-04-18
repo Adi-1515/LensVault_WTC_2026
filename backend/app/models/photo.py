@@ -38,6 +38,8 @@ class Album(Base):
     cover_photo_id = Column(UUID(as_uuid=True), ForeignKey("photos.id"), nullable=True)
     is_public = Column(Boolean, default=False)
     share_token = Column(String(64), nullable=True)
+    album_type = Column(String(50), default="normal", nullable=False)
+    metadata_json = Column(JSONB, nullable=True)
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
