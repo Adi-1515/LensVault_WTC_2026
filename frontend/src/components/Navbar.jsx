@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import {
   Clock, Folder, Heart, Video, Sparkles, Users, Map,
-  Settings, Hexagon, LogOut, X
+  Settings, Hexagon, LogOut, X, Presentation
 } from 'lucide-react';
 
 const Navbar = ({ isOpen = true, isMobileOpen = false, onClose }) => {
@@ -72,6 +72,7 @@ const Navbar = ({ isOpen = true, isMobileOpen = false, onClose }) => {
         <NavLink to="#" icon={Sparkles} label="AI Tags" comingSoon />
         <NavLink to="/people" icon={Users} label="People" />
         <NavLink to="/map" icon={Map} label="Map" />
+        <NavLink to="/slideshow" icon={Presentation} label="Slideshow" />
       </div>
 
       <div style={{ marginTop: 'auto', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
