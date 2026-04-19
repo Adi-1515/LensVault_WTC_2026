@@ -48,31 +48,28 @@ struct ContentView: View {
                     
                     headerView()
                     
-                    Group {
-                        if selectedTab == 0 {
-                            libraryView()
-                        } else if selectedTab == 1 {
-                            collectionScreen()
-                        } else if selectedTab == 2 {
-                            groupingView()
-                        } else if selectedTab == 3 {
-                            searchView()
-                        }
+                    TabView(selection: $selectedTab) {
+                        libraryView()
+                            .tabItem { Label("Library", systemImage: "photo.fill.on.rectangle.fill") }
+                            .tag(0)
+                        
+                        collectionScreen()
+                            .tabItem { Label("Collection", systemImage: "rectangle.stack.fill") }
+                            .tag(1)
+                        
+                        groupingView()
+                            .tabItem { Label("Grouping", systemImage: "square.grid.2x2.fill") }
+                            .tag(2)
+                        
+                        searchView()
+                            .tabItem { Label("Search", systemImage: "magnifyingglass") }
+                            .tag(3)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .navigationBarHidden(true)
             }
-            
-            
-            // Tab Bar Overlay
-            if !appState.isFullScreen {
-                VStack {
-                    Spacer()
-                    tabBar()
-                }
-            }
         }
+
         .onAppear {
             loadFaces()
             
@@ -98,6 +95,9 @@ struct ContentView: View {
                 loadVaultAssets()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("CameraUploadDidComplete"))) { _ in
+            refreshData()
+        }
     }
     
     func loadVaultAssets() {
@@ -119,6 +119,13 @@ struct ContentView: View {
         FaceService.fetchClusters { data in
             self.clusters = data
         }
+    }
+    func refreshData() {
+        PhotoService.fetchPhotos { photos in
+            self.serverPhotos = photos
+        }
+        loadFaces()
+        albumsManager.loadAlbums()
     }
 }
 extension ContentView {
@@ -165,7 +172,7 @@ extension ContentView {
             return ServerAssetGroup(title: title, photos: dict[date]!)
         }
     }
-
+    
     func libraryView() -> some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 16) {
@@ -187,6 +194,9 @@ extension ContentView {
             }
             .padding(.bottom, 100)
         }
+        .refreshable {
+            refreshData()
+        }
     }
     
     func collectionScreen() -> some View {
@@ -204,7 +214,7 @@ extension ContentView {
             } else if collectionMode == 1 {
                 albumsView()
             } else {
-                VaultMapView(assets: assets)
+                VaultMapView(photos: serverPhotos)
             }
         }
         .alert("New Album", isPresented: $isCreatingAlbum) {
@@ -371,24 +381,29 @@ extension ContentView {
         }
     }
     func searchView() -> some View {
-        let filtered = assets.filter { asset in
+        let filtered = serverPhotos.filter { photo in
             if searchText.isEmpty { return true }
-            // PHAsset search is limited without server-side tags, 
-            // but we can search by location name or localized strings if available.
-            // For now, it's a simple placeholder that respects the Vault filter.
-            return true 
+            return photo.filename?.localizedCaseInsensitiveContains(searchText) == true
         }
         
-        return ScrollView {
-            if filtered.isEmpty {
-                Text("No results found in your Vault.")
-                    .foregroundColor(.gray)
-                    .padding()
-            } else {
-                LazyVGrid(columns: columns, spacing: 2) {
-                    ForEach(filtered, id: \.localIdentifier) { asset in
-                        NavigationLink(destination: PhotoDetailView(asset: asset)) {
-                            PhotoCell(asset: asset)
+        return VStack {
+            TextField("Search...", text: $searchText)
+                .padding(10)
+                .background(Color.gray.opacity(0.1))
+                .cornerRadius(10)
+                .padding(.horizontal)
+            
+            ScrollView {
+                if filtered.isEmpty {
+                    Text("No results found in your Vault.")
+                        .foregroundColor(.gray)
+                        .padding()
+                } else {
+                    LazyVGrid(columns: columns, spacing: 2) {
+                        ForEach(filtered) { photo in
+                            NavigationLink(destination: VaultDetailPagerView(photos: serverPhotos, selectedPhotoID: photo.id)) {
+                                VaultMediaCell(media: photo)
+                            }
                         }
                     }
                 }
@@ -397,106 +412,110 @@ extension ContentView {
     }
     
     func albumsView() -> some View {
-        ZStack(alignment: .bottomTrailing) {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 16) {
-                ForEach(albumsManager.albums) { album in
-                    NavigationLink(destination: AlbumDetailView(album: album)) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text(album.name)
-                                    .font(.headline)
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(.gray)
-                            }
-                            .padding(.horizontal)
-                            
-                            let albumAssets = assets.filter { album.assetIdentifiers.contains($0.localIdentifier) }
-                            if albumAssets.isEmpty {
-                                Text("Empty Album")
-                                    .foregroundColor(.gray)
-                                    .font(.subheadline)
-                                    .padding(.horizontal)
-                            } else {
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 2) {
-                                        ForEach(albumAssets, id: \.localIdentifier) { asset in
-                                            PhotoCell(asset: asset)
+            ZStack(alignment: .bottomTrailing) {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 16) {
+                        ForEach(albumsManager.albums) { album in
+                            NavigationLink(destination: AlbumDetailView(album: album)) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        if let urlStr = album.cover_url, let url = URL(string: "\(PhotoService.BASE_URL)\(urlStr)?token=\(AuthService.shared.getToken() ?? "")") {
+                                            AsyncImage(url: url) { img in
+                                                img.resizable().scaledToFill()
+                                            } placeholder: {
+                                                Color.gray
+                                            }
+                                            .frame(width: 80, height: 80)
+                                            .cornerRadius(8)
+                                            .clipped()
+                                        } else {
+                                            Color.gray
                                                 .frame(width: 80, height: 80)
-                                                .clipped()
+                                                .cornerRadius(8)
                                         }
+                                        
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(album.name)
+                                                .font(.headline)
+                                                .foregroundColor(.primary)
+                                            Text("\(album.photo_count ?? 0) photos")
+                                                .font(.subheadline)
+                                                .foregroundColor(.gray)
+                                        }
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .foregroundColor(.gray)
                                     }
                                     .padding(.horizontal)
+                                    .padding(.vertical, 8)
                                 }
                             }
+                            .buttonStyle(PlainButtonStyle())
                         }
                     }
-                    .buttonStyle(PlainButtonStyle())
+                    .padding(.top)
+                    .padding(.bottom, 100)
                 }
+                .refreshable {
+                    refreshData()
+                }
+                
+                Button(action: {
+                    newAlbumName = ""
+                    isCreatingAlbum = true
+                }) {
+                    Image(systemName: "plus")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .frame(width: 56, height: 56)
+                        .background(Color.blue)
+                        .clipShape(Circle())
+                        .shadow(color: Color.black.opacity(0.3), radius: 6, x: 0, y: 4)
+                }
+                .padding(.trailing, 24)
+                .padding(.bottom, 100)
             }
-            .padding(.top)
-            .padding(.bottom, 100)
+        }
+        
+        var headerTitle: String {
+            switch selectedTab {
+            case 0: return "LensVault"
+            case 1: return "Collection"
+            case 2: return "Grouping"
+            case 3: return "Search"
+            default: return "LensVault"
             }
-            
-            Button(action: {
-                newAlbumName = ""
-                isCreatingAlbum = true
-            }) {
-                Image(systemName: "plus")
+        }
+        
+        func headerView() -> some View {
+            HStack {
+                Text(headerTitle)
                     .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                    .frame(width: 56, height: 56)
-                    .background(Color.blue)
-                    .clipShape(Circle())
-                    .shadow(color: Color.black.opacity(0.3), radius: 6, x: 0, y: 4)
-            }
-            .padding(.trailing, 24)
-            .padding(.bottom, 100)
-        }
-    }
-    
-    var headerTitle: String {
-        switch selectedTab {
-        case 0: return "LensVault"
-        case 1: return "Collection"
-        case 2: return "Grouping"
-        case 3: return "Search"
-        default: return "LensVault"
-        }
-    }
-    
-    func headerView() -> some View {
-        HStack {
-            Text(headerTitle)
-                .font(.title2)
-                .fontWeight(.semibold)
-            
-            Spacer()
-            
-            if selectedTab == 0 {
-                PhotosPicker(selection: $selectedItems, matching: .any(of: [.images, .videos]), photoLibrary: .shared()) {
-                    if isUploading {
-                        ProgressView()
-                            .padding(8)
-                            .background(Color.gray.opacity(0.1))
-                            .clipShape(Circle())
-                    } else {
-                        Image(systemName: "plus")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(.black)
-                            .padding(10)
-                            .background(Color.gray.opacity(0.1))
-                            .clipShape(Circle())
+                    .fontWeight(.semibold)
+                
+                Spacer()
+                
+                if selectedTab == 0 {
+                    PhotosPicker(selection: $selectedItems, matching: .any(of: [.images, .videos]), photoLibrary: .shared()) {
+                        if isUploading {
+                            ProgressView()
+                                .padding(8)
+                                .background(Color.gray.opacity(0.1))
+                                .clipShape(Circle())
+                        } else {
+                            Image(systemName: "plus")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(.black)
+                                .padding(10)
+                                .background(Color.gray.opacity(0.1))
+                                .clipShape(Circle())
+                        }
                     }
                 }
             }
+            .padding()
         }
-        .padding()
-    }
-    
     func tabBar() -> some View {
         Group {
             if selectedTab == 3 {
@@ -508,7 +527,7 @@ extension ContentView {
     }
     
     func mainTabBar() -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 16) {
             
             // Main Pill
             HStack(spacing: 0) {
@@ -518,9 +537,9 @@ extension ContentView {
             }
             .padding(.horizontal, 4)
             .padding(.vertical, 8)
-            .background(Color.white)
+            .background(.regularMaterial)
             .clipShape(Capsule())
-            .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+            .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 4)
             
             // Separate Search Circle
             Button(action: {
@@ -530,17 +549,16 @@ extension ContentView {
                 }
             }) {
                 Image(systemName: "magnifyingglass")
-                    .font(.title2)
-                    .fontWeight(selectedTab == 3 ? .semibold : .regular)
-                    .foregroundColor(selectedTab == 3 ? .blue : .black)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundColor(.primary)
                     .frame(width: 60, height: 60)
-                    .background(Color.white)
+                    .background(.regularMaterial)
                     .clipShape(Circle())
-                    .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+                    .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 4)
             }
         }
         .padding(.horizontal)
-        .padding(.bottom, 8)
+        .padding(.bottom, 16)
     }
 
     var previousTabIcon: String {
@@ -553,7 +571,7 @@ extension ContentView {
     }
 
     func searchTabBar() -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 16) {
             
             // Revert-To-Previous Button
             Button(action: {
@@ -562,37 +580,37 @@ extension ContentView {
                 }
             }) {
                 Image(systemName: previousTabIcon)
-                    .font(.title2)
-                    .foregroundColor(.black)
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundColor(.primary)
                     .frame(width: 60, height: 60)
-                    .background(Color.white)
+                    .background(.regularMaterial)
                     .clipShape(Circle())
-                    .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+                    .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 4)
             }
             
             // Search Bar Pill
             HStack(spacing: 12) {
                 Image(systemName: "magnifyingglass")
                     .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.black)
+                    .fontWeight(.medium)
+                    .foregroundColor(.primary)
                 
-                TextField("Search", text: $searchText)
-                    .font(.system(size: 16))
+                TextField("Games, Apps and More", text: $searchText)
+                    .font(.system(size: 17))
+                    .foregroundColor(.primary)
                 
                 Image(systemName: "mic")
-                    .font(.title2)
-                    .foregroundColor(.gray)
+                    .font(.title3)
+                    .foregroundColor(.primary)
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 16)
             .frame(height: 60)
-            .background(Color.white)
+            .background(.regularMaterial)
             .clipShape(Capsule())
-            .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
+            .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 4)
         }
         .padding(.horizontal)
-        .padding(.bottom, 8)
+        .padding(.bottom, 16)
     }
     
     func tabItem(icon: String, label: String, index: Int) -> some View {
@@ -603,13 +621,15 @@ extension ContentView {
         }) {
             VStack(spacing: 4) {
                 Image(systemName: icon)
-                    .font(.system(size: 20, weight: selectedTab == index ? .semibold : .regular))
+                    .font(.system(size: 22, weight: selectedTab == index ? .semibold : .regular))
+                    .foregroundColor(selectedTab == index ? .blue : .primary)
+                
                 Text(label)
-                    .font(.system(size: 11, weight: selectedTab == index ? .semibold : .regular))
+                    .font(.system(size: 11, weight: selectedTab == index ? .semibold : .medium))
+                    .foregroundColor(selectedTab == index ? .blue : .primary)
             }
-            .foregroundColor(selectedTab == index ? .blue : .primary)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
             .background(
                 ZStack {
                     if selectedTab == index {
@@ -621,153 +641,4 @@ extension ContentView {
             )
         }
     }
-    
 }
-
-    struct PhotoDetailView: View {
-        var asset: PHAsset
-        @State private var image: UIImage?
-        @State private var player: AVPlayer?
-        
-        @StateObject private var favoritesManager = FavoritesManager.shared
-        @StateObject private var albumsManager = AlbumsManager.shared
-        @State private var showAlbumSheet = false
-        
-        var body: some View {
-            ZStack {
-                Color.black.ignoresSafeArea()
-                
-                if asset.mediaType == .video {
-                    if let player = player {
-                        VideoPlayer(player: player)
-                            .onAppear {
-                                player.play()
-                            }
-                            .onDisappear {
-                                player.pause()
-                            }
-                    } else {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    }
-                } else {
-                    if let img = image {
-                        Image(uiImage: img)
-                            .resizable()
-                            .scaledToFit()
-                    } else {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    }
-                }
-            }
-            .overlay(
-                VStack {
-                    HStack {
-                        Spacer()
-                        Button(action: {
-                            favoritesManager.toggleFavorite(for: asset.localIdentifier)
-                        }) {
-                            Image(systemName: favoritesManager.isFavorite(localIdentifier: asset.localIdentifier) ? "heart.fill" : "heart")
-                                .foregroundColor(favoritesManager.isFavorite(localIdentifier: asset.localIdentifier) ? .red : .white)
-                                .font(.title)
-                                .padding()
-                                .shadow(color: .black.opacity(0.5), radius: 2)
-                        }
-                    }
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        Button(action: {
-                            showAlbumSheet = true
-                        }) {
-                            Text("Add to Album")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                                .background(Color.black.opacity(0.6))
-                                .clipShape(Capsule())
-                        }
-                        .padding()
-                    }
-                }
-            )
-            .sheet(isPresented: $showAlbumSheet) {
-                NavigationView {
-                    List {
-                        ForEach(albumsManager.albums) { album in
-                            Button(action: {
-                                // Add to Imported list if not already there
-                                var currentList = UserDefaults.standard.stringArray(forKey: "Imported_PHAssets") ?? []
-                                if !currentList.contains(asset.localIdentifier) {
-                                    currentList.append(asset.localIdentifier)
-                                    UserDefaults.standard.set(currentList, forKey: "Imported_PHAssets")
-                                    // Notify ContentView to refresh its assets list
-                                    NotificationCenter.default.post(name: NSNotification.Name("VaultDidUpdate"), object: nil)
-                                }
-                                
-                                albumsManager.addAsset(to: album.id, assetIdentifier: asset.localIdentifier)
-                                showAlbumSheet = false
-                            }) {
-                                HStack {
-                                    Text(album.name)
-                                        .foregroundColor(.primary)
-                                    Spacer()
-                                    if album.assetIdentifiers.contains(asset.localIdentifier) {
-                                        Image(systemName: "checkmark")
-                                            .foregroundColor(.blue)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .navigationTitle("Select Album")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .navigationBarItems(trailing: Button("Cancel") { showAlbumSheet = false })
-                }
-            }
-            .onAppear {
-                AppState.shared.isFullScreen = true
-                loadAsset()
-            }
-            .onDisappear {
-                AppState.shared.isFullScreen = false
-            }
-        }
-        
-        func loadAsset() {
-            let manager = PHImageManager.default()
-            
-            if asset.mediaType == .video {
-                let options = PHVideoRequestOptions()
-                options.isNetworkAccessAllowed = true
-                
-                manager.requestPlayerItem(forVideo: asset, options: options) { item, _ in
-                    DispatchQueue.main.async {
-                        if let item = item {
-                            self.player = AVPlayer(playerItem: item)
-                        }
-                    }
-                }
-            } else {
-                let options = PHImageRequestOptions()
-                options.isNetworkAccessAllowed = true
-                options.deliveryMode = .highQualityFormat
-                
-                manager.requestImage(
-                    for: asset,
-                    targetSize: PHImageManagerMaximumSize,
-                    contentMode: .aspectFit,
-                    options: options
-                ) { result, _ in
-                    DispatchQueue.main.async {
-                        if let result = result {
-                            self.image = result
-                        }
-                    }
-                }
-            }
-        }
-    }

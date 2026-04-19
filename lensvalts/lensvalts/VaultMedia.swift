@@ -8,4 +8,6 @@ struct VaultMedia: Codable, Identifiable, Sendable {
     let canonical_date: String?
     let url: String?
     let thumbnail_url: String?
+    let latitude: Double?
+    let longitude: Double?
 }

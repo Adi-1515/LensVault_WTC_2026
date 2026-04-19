@@ -5,19 +5,19 @@ import CoreLocation
 
 struct PhotoLocation: Identifiable {
     let id = UUID()
-    let asset: PHAsset
+    let media: VaultMedia
     let coordinate: CLLocationCoordinate2D
 }
 
 struct LocationGroup: Identifiable {
     let id = UUID()
     var title: String
-    let assets: [PHAsset]
+    let photos: [VaultMedia]
     let centerCoordinate: CLLocationCoordinate2D
 }
 
 struct VaultMapView: View {
-    var assets: [PHAsset]
+    var photos: [VaultMedia]
     
     @State private var region = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
@@ -31,8 +31,8 @@ struct VaultMapView: View {
         VStack(spacing: 0) {
             Map(coordinateRegion: $region, annotationItems: photoLocations) { item in
                 MapAnnotation(coordinate: item.coordinate) {
-                    NavigationLink(destination: PhotoDetailView(asset: item.asset)) {
-                        PhotoCell(asset: item.asset)
+                    NavigationLink(destination: VaultDetailPagerView(photos: photos, selectedPhotoID: item.media.id)) {
+                        VaultMediaCell(media: item.media)
                             .frame(width: 50, height: 50)
                             .clipShape(Circle())
                             .overlay(Circle().stroke(Color.white, lineWidth: 2))
@@ -64,7 +64,7 @@ struct VaultMapView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(group.title)
                                         .font(.headline)
-                                    Text("\(group.assets.count) photos")
+                                    Text("\(group.photos.count) photos")
                                         .font(.caption)
                                         .foregroundColor(.gray)
                                 }
@@ -93,9 +93,9 @@ struct VaultMapView: View {
                             
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 4) {
-                                    ForEach(group.assets, id: \.localIdentifier) { asset in
-                                        NavigationLink(destination: PhotoDetailView(asset: asset)) {
-                                            PhotoCell(asset: asset)
+                                    ForEach(group.photos) { photo in
+                                        NavigationLink(destination: VaultDetailPagerView(photos: group.photos, selectedPhotoID: photo.id)) {
+                                            VaultMediaCell(media: photo)
                                                 .frame(width: 110, height: 110)
                                                 .cornerRadius(8)
                                         }
@@ -116,28 +116,27 @@ struct VaultMapView: View {
     
     func processLocations() {
         var locations: [PhotoLocation] = []
-        var groupDict: [String: [PHAsset]] = [:]
+        var groupDict: [String: [VaultMedia]] = [:]
         var coordDict: [String: CLLocationCoordinate2D] = [:]
         
-        for asset in assets {
-            if let loc = asset.location {
-                locations.append(PhotoLocation(asset: asset, coordinate: loc.coordinate))
+        for photo in photos {
+            guard let lat = photo.latitude, let lon = photo.longitude else { continue }
+            let coord = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+            locations.append(PhotoLocation(media: photo, coordinate: coord))
                 
-                // Group by rounding coordinates to 1 decimal place (~11km)
-                let latRound = String(format: "%.1f", loc.coordinate.latitude)
-                let lonRound = String(format: "%.1f", loc.coordinate.longitude)
-                let key = "\(latRound),\(lonRound)"
-                
-                groupDict[key, default: []].append(asset)
-                coordDict[key] = loc.coordinate
-            }
+            let latRound = String(format: "%.1f", lat)
+            let lonRound = String(format: "%.1f", lon)
+            let key = "\(latRound),\(lonRound)"
+            
+            groupDict[key, default: []].append(photo)
+            coordDict[key] = coord
         }
         
         self.photoLocations = locations
         
         // Initial group setup
-        var newGroups = groupDict.map { key, assets in
-            LocationGroup(title: "Locating...", assets: assets, centerCoordinate: coordDict[key]!)
+        var newGroups = groupDict.map { key, photos in
+            LocationGroup(title: "Locating...", photos: photos, centerCoordinate: coordDict[key]!)
         }
         
         self.locationGroups = newGroups

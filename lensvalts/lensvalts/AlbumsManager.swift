@@ -2,59 +2,85 @@ import Foundation
 import SwiftUI
 import Combine
 
-struct Album: Identifiable, Codable {
-    let id: UUID
+import Foundation
+import SwiftUI
+import Combine
+
+struct AlbumServer: Identifiable, Codable {
+    let id: String
     var name: String
-    var assetIdentifiers: [String]
+    var description: String?
+    var cover_photo_id: String?
+    var photo_count: Int?
+    var is_public: Bool?
+    var share_token: String?
+    var cover_url: String?
+}
+
+struct AlbumDetailResponse: Codable {
+    let id: String
+    var name: String
+    var photo_count: Int?
+    var photos: [VaultMedia]
 }
 
 class AlbumsManager: ObservableObject {
     static let shared = AlbumsManager()
     
-    @Published var albums: [Album] = []
+    @Published var albums: [AlbumServer] = []
     
-    private let albumsKey = "LensVault_Albums"
-    
-    private init() {
-        loadAlbums()
-        if albums.isEmpty {
-            createAlbum(name: "Trip")
-            createAlbum(name: "Friends")
-        }
-    }
+    // We keep this init private, but don't call anything synchronously
+    private init() {}
     
     func loadAlbums() {
-        if let data = UserDefaults.standard.data(forKey: albumsKey),
-           let decoded = try? JSONDecoder().decode([Album].self, from: data) {
-            albums = decoded
-        }
-    }
-    
-    func saveAlbums() {
-        if let encoded = try? JSONEncoder().encode(albums) {
-            UserDefaults.standard.set(encoded, forKey: albumsKey)
-        }
+        guard let token = AuthService.shared.getToken(),
+              let url = URL(string: "\(PhotoService.BASE_URL)/api/albums/") else { return }
+        
+        var request = URLRequest(url: url)
+        request.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        
+        URLSession.shared.dataTask(with: request) { data, _, _ in
+            if let data = data {
+                if let decoded = try? JSONDecoder().decode([AlbumServer].self, from: data) {
+                    DispatchQueue.main.async {
+                        self.albums = decoded
+                    }
+                }
+            }
+        }.resume()
     }
     
     func createAlbum(name: String) {
-        let newAlbum = Album(id: UUID(), name: name, assetIdentifiers: [])
-        albums.append(newAlbum)
-        saveAlbums()
+        guard let token = AuthService.shared.getToken(),
+              let url = URL(string: "\(PhotoService.BASE_URL)/api/albums/") else { return }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body: [String: Any] = ["name": name, "description": ""]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        
+        URLSession.shared.dataTask(with: request) { _, _, _ in
+            self.loadAlbums()
+        }.resume()
     }
     
-    func addAsset(to albumID: UUID, assetIdentifier: String) {
-        if let index = albums.firstIndex(where: { $0.id == albumID }) {
-            if !albums[index].assetIdentifiers.contains(assetIdentifier) {
-                albums[index].assetIdentifiers.append(assetIdentifier)
-                saveAlbums()
-            }
-        }
-    }
-    
-    func removeAsset(from albumID: UUID, assetIdentifier: String) {
-        if let index = albums.firstIndex(where: { $0.id == albumID }) {
-            albums[index].assetIdentifiers.removeAll { $0 == assetIdentifier }
-            saveAlbums()
-        }
+    func addPhotos(albumId: String, photoIds: [String]) {
+         guard let token = AuthService.shared.getToken(),
+               let url = URL(string: "\(PhotoService.BASE_URL)/api/albums/\(albumId)/photos") else { return }
+         
+         var request = URLRequest(url: url)
+         request.httpMethod = "POST"
+         request.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+         
+         let body: [String: Any] = ["photo_ids": photoIds]
+         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+         
+         URLSession.shared.dataTask(with: request) { _, _, _ in
+             self.loadAlbums()
+         }.resume()
     }
 }

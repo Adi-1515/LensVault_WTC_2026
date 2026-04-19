@@ -51,10 +51,22 @@ class LocalVaultService {
                     try? data.write(to: destURL)
                     print("Saved item to vault: \(destURL.lastPathComponent)")
                     
+                    var lat: Double? = nil
+                    var lon: Double? = nil
+                    
+                    if let identifier = item.itemIdentifier {
+                        let result = PHAsset.fetchAssets(withLocalIdentifiers: [identifier], options: nil)
+                        if let asset = result.firstObject, let location = asset.location {
+                            lat = location.coordinate.latitude
+                            lon = location.coordinate.longitude
+                        }
+                    }
+                    
                     // Sync up to the backend
-                    PhotoService.uploadPhoto(fileURL: destURL) { media in
+                    PhotoService.uploadPhoto(fileURL: destURL, latitude: lat, longitude: lon) { media in
                         if let media = media {
-                            print("Synced \(media.id) to backend")
+                            print("Synced \(media.id) to backend with location (\(lat ?? 0), \(lon ?? 0))")
+                            NotificationCenter.default.post(name: NSNotification.Name("CameraUploadDidComplete"), object: nil)
                         } else {
                             print("Failed to sync \(destURL.lastPathComponent)")
                         }

@@ -54,7 +54,7 @@ class PhotoService {
         return assets
     }
     
-    static func uploadPhoto(fileURL: URL, completion: @escaping (VaultMedia?) -> Void) {
+    static func uploadPhoto(fileURL: URL, latitude: Double? = nil, longitude: Double? = nil, completion: @escaping (VaultMedia?) -> Void) {
         guard let url = URL(string: "\(BASE_URL)/api/photos/upload") else {
             completion(nil)
             return
@@ -70,6 +70,16 @@ class PhotoService {
         let mimeType = filename.lowercased().hasSuffix("mp4") ? "video/mp4" : "image/jpeg"
         
         if let fileData = try? Data(contentsOf: fileURL) {
+            if let lat = latitude, let lon = longitude {
+                body.append("--\(boundary)\r\n".data(using: .utf8)!)
+                body.append("Content-Disposition: form-data; name=\"latitude\"\r\n\r\n".data(using: .utf8)!)
+                body.append("\(lat)\r\n".data(using: .utf8)!)
+                
+                body.append("--\(boundary)\r\n".data(using: .utf8)!)
+                body.append("Content-Disposition: form-data; name=\"longitude\"\r\n\r\n".data(using: .utf8)!)
+                body.append("\(lon)\r\n".data(using: .utf8)!)
+            }
+            
             body.append("--\(boundary)\r\n".data(using: .utf8)!)
             body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(filename)\"\r\n".data(using: .utf8)!)
             body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
