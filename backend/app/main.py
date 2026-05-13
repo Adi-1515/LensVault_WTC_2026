@@ -13,23 +13,30 @@ async def lifespan(app: FastAPI):
     try:
         from app.database import engine, Base
         from sqlalchemy import text
+        import app.models.user
+        import app.models.photo
         import app.models.face # Import face model for table creation
         Base.metadata.create_all(bind=engine)
         logger.info("✅ Database tables created/verified")
 
         # Add new columns to existing tables (create_all won't do this)
-        with engine.connect() as conn:
-            conn.execute(text("""
-                ALTER TABLE albums ADD COLUMN IF NOT EXISTS album_type VARCHAR(50) DEFAULT 'normal' NOT NULL
-            """))
-            conn.execute(text("""
-                ALTER TABLE albums ADD COLUMN IF NOT EXISTS metadata_json JSON
-            """))
-            conn.execute(text("""
-                CREATE INDEX IF NOT EXISTS ix_faces_person_photo ON faces (person_id, photo_id)
-            """))
-            conn.commit()
-        logger.info("✅ Schema migrations applied")
+        # Only run ALTER TABLE for PostgreSQL; SQLite's create_all already handles schema
+        dialect = engine.dialect.name
+        if dialect == "postgresql":
+            with engine.connect() as conn:
+                conn.execute(text("""
+                    ALTER TABLE albums ADD COLUMN IF NOT EXISTS album_type VARCHAR(50) DEFAULT 'normal' NOT NULL
+                """))
+                conn.execute(text("""
+                    ALTER TABLE albums ADD COLUMN IF NOT EXISTS metadata_json JSON
+                """))
+                conn.execute(text("""
+                    CREATE INDEX IF NOT EXISTS ix_faces_person_photo ON faces (person_id, photo_id)
+                """))
+                conn.commit()
+            logger.info("✅ Schema migrations applied")
+        else:
+            logger.info(f"⏭️  Skipping ALTER migrations for {dialect} (handled by create_all)")
     except Exception as e:
         logger.warning(f"⚠️  Database not available at startup: {e}")
         logger.warning("App will start anyway — DB-dependent routes will fail until connected")

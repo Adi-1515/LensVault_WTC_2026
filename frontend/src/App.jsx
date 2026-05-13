@@ -14,6 +14,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import People from './pages/People';
 import PersonDetail from './pages/PersonDetail';
 import SlideshowViewer from './pages/SlideshowViewer';
+import AlbumSlideshow from './pages/AlbumSlideshow';
 
 function App() {
   return (
@@ -34,6 +35,8 @@ function App() {
       <Route path="/map" element={<ProtectedRoute><MapView /></ProtectedRoute>} />
       <Route path="/people" element={<ProtectedRoute><People /></ProtectedRoute>} />
       <Route path="/person/:id" element={<ProtectedRoute><PersonDetail /></ProtectedRoute>} />
+      <Route path="/slideshow" element={<ProtectedRoute><AlbumSlideshow /></ProtectedRoute>} />
+      <Route path="/slideshow/:albumId" element={<ProtectedRoute><AlbumSlideshow /></ProtectedRoute>} />
       <Route path="/" element={<Navigate to="/timeline" replace />} />
     </Routes>
   );

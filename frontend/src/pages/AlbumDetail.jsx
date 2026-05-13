@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getAlbum, removePhotoFromAlbum, toggleFavourite, deleteAlbum, getTimeline, addPhotosToAlbum, shareAlbum, generateSlideshowLink, revokeSlideshowLink, getThumbnailUrl } from '../services/api';
 import Lightbox from '../components/Lightbox';
 import PhotoGrid from '../components/PhotoGrid';
-import { Plus, Trash2, FolderOpen, ShieldAlert, Check, Share2, Copy, X, Globe, Lock, Presentation, ExternalLink, RefreshCw, Unlink } from 'lucide-react';
+import { Plus, Trash2, FolderOpen, ShieldAlert, Check, Share2, Copy, X, Globe, Lock, Presentation, ExternalLink, RefreshCw, Unlink, Play } from 'lucide-react';
 
 const AlbumDetail = () => {
   const { id } = useParams();
@@ -128,6 +128,7 @@ const AlbumDetail = () => {
           <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{album.photos.length} photos</span>
         </div>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button onClick={() => navigate(`/slideshow/${id}`)} disabled={album.photos.length === 0} className="btn-primary" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', border: 'none' }}><Play size={16} /> Play Slideshow</button>
           <button onClick={openAddModal} className="btn-primary"><Plus size={16} /> Add Photos</button>
           <button onClick={handleGenerateSlideshow} disabled={isGenerating || album.photos.length === 0} className="btn-secondary" style={{ color: album.share_token ? 'var(--accent-color)' : 'var(--text-primary)', borderColor: album.share_token ? 'var(--accent-color)' : undefined, background: album.share_token ? 'var(--accent-light)' : undefined }}>
             <Presentation size={16} /> {isGenerating ? 'Generating...' : album.share_token ? 'Slideshow Link' : 'Generate Slideshow Link'}

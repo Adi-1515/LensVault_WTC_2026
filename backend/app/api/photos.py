@@ -1,6 +1,6 @@
 import os
 import math
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Response, Query
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Response, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
@@ -25,7 +25,13 @@ def enrich_photo_response(photo: Photo):
     return photo_dict
 
 @router.post("/upload", status_code=202)
-def upload_photo(file: UploadFile = File(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def upload_photo(
+    file: UploadFile = File(...),
+    latitude: float = Form(None),
+    longitude: float = Form(None),
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
     if not file.content_type.startswith(("image/", "video/")):
         raise HTTPException(status_code=400, detail="Invalid file type")
     
@@ -36,8 +42,11 @@ def upload_photo(file: UploadFile = File(...), db: Session = Depends(get_db), cu
     if existing:
         return enrich_photo_response(existing)
         
-    exif_dict, canonical_date, lat, lon, width, height = extract_exif(file_bytes)
+    exif_dict, canonical_date, extracted_lat, extracted_lon, width, height = extract_exif(file_bytes)
     storage_path = save_original(file_bytes, file.filename, canonical_date, settings.STORAGE_PATH)
+    
+    final_lat = latitude if latitude is not None else extracted_lat
+    final_lon = longitude if longitude is not None else extracted_lon
     
     phash = compute_phash(storage_path) if file.content_type.startswith("image/") else None
     
@@ -51,8 +60,8 @@ def upload_photo(file: UploadFile = File(...), db: Session = Depends(get_db), cu
         storage_path=storage_path,
         canonical_date=canonical_date,
         exif_json=exif_dict,
-        latitude=lat,
-        longitude=lon,
+        latitude=final_lat,
+        longitude=final_lon,
         width=width,
         height=height,
         thumbnail_status="pending"
